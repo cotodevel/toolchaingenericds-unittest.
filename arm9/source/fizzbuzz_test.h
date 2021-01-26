@@ -1,8 +1,6 @@
 #ifndef FIZZBUZZ_TEST_H_
 #define FIZZBUZZ_TEST_H_
 
-#endif
-
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -17,3 +15,6 @@ extern void test_fizzbuzz_many_3_and_5();
 #ifdef __cplusplus
 }
 #endif
+
+#endif
+
