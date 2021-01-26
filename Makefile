@@ -88,8 +88,8 @@ export DIRS_ARM9_SRC = data/	\
 			../common/templateCode/data/arm9/	\
 			source/c_partial_mock/	\
 			source/c_regression/	\
-			
-			
+			source/cpp_tests/	\
+
 export DIRS_ARM9_HEADER = data/	\
 			build/	\
 			include/	\
@@ -101,6 +101,7 @@ export DIRS_ARM9_HEADER = data/	\
 			../$(PosIndCodeDIR_FILENAME)/$(DIR_ARM9)/include/	\
 			source/c_partial_mock/	\
 			source/c_regression/	\
+			source/cpp_tests/	\
 
 # Build Target(s)	(both processors here)
 all: $(EXECUTABLE_FNAME)

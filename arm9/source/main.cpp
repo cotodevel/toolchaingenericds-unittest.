@@ -41,6 +41,7 @@ USA
 #include "opmock.h"
 #include "c_partial_mock_test.h"
 #include "c_regression.h"
+#include "cpptests.h"
 
 struct FileClassList * menuIteratorfileClassListCtx = NULL;
 char curChosenBrowseFile[256+1];
@@ -332,8 +333,8 @@ static bool ShowBrowserC(char * Path, char * outBuf, bool * pendingPlay, int * c
 	return false;
 }
 
-#define ListSize (int)(2)
-static char * TestList[ListSize] = {"c_partial_mock", "c_regression"};
+#define ListSize (int)(3)
+static char * TestList[ListSize] = {"c_partial_mock", "c_regression", "cpp_tests"};
 
 int main(int argc, char **argv) {
 	
@@ -579,15 +580,17 @@ int main(int argc, char **argv) {
 				printfCoords(0, 11, "Press (A) to start test");
 			}
 			
-			opmock_test_suite_reset();
 			switch(testIdx){
 				case (0):{ //c_partial_mock
+					opmock_test_suite_reset();
 					opmock_register_test(test_fizzbuzz_with_15, "test_fizzbuzz_with_15");
 					opmock_register_test(test_fizzbuzz_many_3, "test_fizzbuzz_many_3");
 					opmock_register_test(test_fizzbuzz_many_5, "test_fizzbuzz_many_5");
+					opmock_test_suite_run();
 				}
 				break;
 				case (1):{ //c_regression
+					opmock_test_suite_reset();
 					opmock_register_test(test_push_pop_stack, "test_push_pop_stack");
 					opmock_register_test(test_push_pop_stack2, "test_push_pop_stack2");
 					opmock_register_test(test_push_pop_stack3, "test_push_pop_stack3");
@@ -598,12 +601,16 @@ int main(int argc, char **argv) {
 					opmock_register_test(test_verify_with_matcher_float, "test_verify_with_matcher_float");
 					opmock_register_test(test_verify_with_matcher_custom, "test_verify_with_matcher_custom");
 					opmock_register_test(test_cmp_ptr_with_typedef, "test_cmp_ptr_with_typedef");
-					opmock_register_test(test_cmp_ptr_with_typedef_fail, "test_cmp_ptr_with_typedef_fail");					
+					opmock_register_test(test_cmp_ptr_with_typedef_fail, "test_cmp_ptr_with_typedef_fail");	
+					opmock_test_suite_run();
 				}
 				break;
-				
+				case (2):{ //cpp_tests
+					doCppTests(argc, argv);
+				}
+				break;
 			}
-			opmock_test_suite_run();
+			
 			
 			printf("Tests done. Press (A) to exit.");
 			while(1==1){
