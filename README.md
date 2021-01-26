@@ -1,29 +1,20 @@
-# README #
+![ToolchainGenericDS](img/TGDS-Logo.png)
 
-This README would normally document whatever steps are necessary to get your application up and running.
+This is the ToolchainGenericDS-UnitTest project:
 
-### What is this repository for? ###
+1.	Compile Toolchain:
+To compile this project you will need to follow the steps at https://bitbucket.org/Coto88/toolchaingenericds :
+Then simply extract the project somewhere.
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+2.	Compile this project: 
+Open msys, through msys commands head to the directory your extracted this project.
+Then write:
+make clean <enter>
+make <enter>
 
-### How do I get set up? ###
+After compiling, run the example in NDS. 
 
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
-
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
-
-### Who do I talk to? ###
-
-* Repo owner or admin
-* Other community or team contact
+Project Specific description:
+	Press Y button to perform a suite of tests to test Clang, and C/C++ functinality. Performs C/C++ tests, and should pass all of them.
+	
+Coto
