@@ -1,4 +1,4 @@
-#include "fizzbuzz.h"
+#include "c_partial_mock.h"
 #include "sound.h"
 
 #include <string.h>

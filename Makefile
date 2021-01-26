@@ -86,9 +86,9 @@ export DIRS_ARM9_SRC = data/	\
 			../common/	\
 			../common/templateCode/source/	\
 			../common/templateCode/data/arm9/	\
-			../../UnitTest++/	\
-			../../UnitTest++/NDS	\
-			../../tests/
+			source/c_partial_mock/	\
+			source/c_regression/	\
+			
 			
 export DIRS_ARM9_HEADER = data/	\
 			build/	\
@@ -99,10 +99,9 @@ export DIRS_ARM9_HEADER = data/	\
 			../common/templateCode/source/	\
 			../common/templateCode/data/arm9/	\
 			../$(PosIndCodeDIR_FILENAME)/$(DIR_ARM9)/include/	\
-			../../UnitTest++/	\
-			../../UnitTest++/NDS	\
-			../../tests/
-			
+			source/c_partial_mock/	\
+			source/c_regression/	\
+
 # Build Target(s)	(both processors here)
 all: $(EXECUTABLE_FNAME)
 #all:	debug

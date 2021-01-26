@@ -1,5 +1,5 @@
-#include "fizzbuzz_test.h"
-#include "fizzbuzz.h"
+#include "c_partial_mock_test.h"
+#include "c_partial_mock.h"
 #include "opmock.h"
 #include <stdlib.h>
 #include "posixHandleTGDS.h"

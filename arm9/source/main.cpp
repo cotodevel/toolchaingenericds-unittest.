@@ -39,7 +39,8 @@ USA
 #include "click_raw.h"
 #include "ima_adpcm.h"
 #include "opmock.h"
-#include "fizzbuzz_test.h"
+#include "c_partial_mock_test.h"
+#include "c_regression.h"
 
 struct FileClassList * menuIteratorfileClassListCtx = NULL;
 char curChosenBrowseFile[256+1];
@@ -331,6 +332,9 @@ static bool ShowBrowserC(char * Path, char * outBuf, bool * pendingPlay, int * c
 	return false;
 }
 
+#define ListSize (int)(2)
+static char * TestList[ListSize] = {"c_partial_mock", "c_regression"};
+
 int main(int argc, char **argv) {
 	
 	
@@ -536,16 +540,79 @@ int main(int argc, char **argv) {
 		
 		if (keysDown() & KEY_Y){
 			
+			//Choose the test
+			clrscr();
+			
+			int testIdx = 0;
+			while(1==1){
+				scanKeys();
+				
+				while(keysDown() & KEY_UP){
+					if(testIdx < (ListSize-1)){
+						testIdx++;
+					}
+					scanKeys();
+					while(!(keysUp() & KEY_UP)){
+						scanKeys();
+					}
+					printfCoords(0, 10, "                                                    ");	//clean old
+					printfCoords(0, 11, "                                                    ");
+				}
+				
+				while(keysDown() & KEY_DOWN){
+					if(testIdx > 0){
+						testIdx--;
+					}
+					scanKeys();
+					while(!(keysUp() & KEY_DOWN)){
+						scanKeys();
+					}
+					printfCoords(0, 10, "                                                    ");	//clean old
+					printfCoords(0, 11, "                                                    ");
+				}
+				
+				if(keysDown() & KEY_A){
+					break;
+				}
+				
+				printfCoords(0, 10, "Which Test? [%s] >%d", TestList[testIdx], TGDSPrintfColor_Yellow);
+				printfCoords(0, 11, "Press (A) to start test");
+			}
+			
 			opmock_test_suite_reset();
-			opmock_register_test(test_fizzbuzz_with_15, "test_fizzbuzz_with_15");
-			opmock_register_test(test_fizzbuzz_many_3, "test_fizzbuzz_many_3");
-			opmock_register_test(test_fizzbuzz_many_5, "test_fizzbuzz_many_5");
+			switch(testIdx){
+				case (0):{ //c_partial_mock
+					opmock_register_test(test_fizzbuzz_with_15, "test_fizzbuzz_with_15");
+					opmock_register_test(test_fizzbuzz_many_3, "test_fizzbuzz_many_3");
+					opmock_register_test(test_fizzbuzz_many_5, "test_fizzbuzz_many_5");
+				}
+				break;
+				case (1):{ //c_regression
+					opmock_register_test(test_push_pop_stack, "test_push_pop_stack");
+					opmock_register_test(test_push_pop_stack2, "test_push_pop_stack2");
+					opmock_register_test(test_push_pop_stack3, "test_push_pop_stack3");
+					opmock_register_test(test_push_pop_stack4, "test_push_pop_stack4");
+					opmock_register_test(test_verify, "test_verify");
+					opmock_register_test(test_verify_with_matcher_cstr, "test_verify_with_matcher_cstr");
+					opmock_register_test(test_verify_with_matcher_int, "test_verify_with_matcher_int");
+					opmock_register_test(test_verify_with_matcher_float, "test_verify_with_matcher_float");
+					opmock_register_test(test_verify_with_matcher_custom, "test_verify_with_matcher_custom");
+					opmock_register_test(test_cmp_ptr_with_typedef, "test_cmp_ptr_with_typedef");
+					opmock_register_test(test_cmp_ptr_with_typedef_fail, "test_cmp_ptr_with_typedef_fail");					
+				}
+				break;
+				
+			}
 			opmock_test_suite_run();
 			
-			scanKeys();
-			while(keysHeld() & KEY_Y){
-				scanKeys();
+			printf("Tests done. Press (A) to exit.");
+			while(1==1){
+				scanKeys();	
+				if(keysDown() & KEY_A){
+					break;
+				}	
 			}
+			menuShow();
 		}
 		
 		
