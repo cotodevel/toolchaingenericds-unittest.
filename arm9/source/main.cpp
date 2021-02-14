@@ -42,6 +42,7 @@ USA
 #include "c_partial_mock_test.h"
 #include "c_regression.h"
 #include "cpptests.h"
+#include "libndsFIFO.h"
 
 struct FileClassList * menuIteratorfileClassListCtx = NULL;
 char curChosenBrowseFile[256+1];
@@ -72,18 +73,8 @@ static inline void menuShow(){
 	printf("(D-PAD:UP/DOWN): Volume + / - ");
 	printf("(D-PAD:LEFT): GDB Debugging. >%d", TGDSPrintfColor_Green);
 	printf("(D-PAD:RIGHT): Demo Sound. >%d", TGDSPrintfColor_Yellow);
-	printf("(B): Stop WAV/IMA-ADPCM file. ");
-	printf("Current Volume: %d", (int)getVolume());
-	if(internalCodecType == SRC_WAVADPCM){
-		printf("ADPCM Play: %s >%d", curChosenBrowseFile, TGDSPrintfColor_Red);
-	}
-	else if(internalCodecType == SRC_WAV){	
-		printf("WAVPCM Play: %s >%d", curChosenBrowseFile, TGDSPrintfColor_Green);
-	}
-	else{
-		printf("Player Inactive");
-	}
 	printf("(Y): Run CPPUTest. >%d", TGDSPrintfColor_Yellow);
+	printf("(X): Test libnds FIFO subsystem. >%d", TGDSPrintfColor_Yellow);
 	printf("Available heap memory: %d >%d", getMaxRam(), TGDSPrintfColor_Cyan);
 	printarm7DebugBuffer();
 }
@@ -336,6 +327,23 @@ static bool ShowBrowserC(char * Path, char * outBuf, bool * pendingPlay, int * c
 #define ListSize (int)(3)
 static char * TestList[ListSize] = {"c_partial_mock", "c_regression", "cpp_tests"};
 
+static void returnMsgHandler(int bytes, void* user_data);
+
+//Should ARM7 reply a message, then, it'll be received to test the Libnds FIFO implementation.
+static void returnMsgHandler(int bytes, void* user_data)
+{
+	returnMsg msg;
+	fifoGetDatamsg(FIFO_RETURN, bytes, (u8*) &msg);
+	printf("ARM7 reply size: %d returnMsgHandler: ", bytes);
+	printf("%s >%d", (char*)&msg.data[0], TGDSPrintfColor_Green);
+}
+
+static void InstallSoundSys()
+{
+	/* Install FIFO */
+	fifoSetDatamsgHandler(FIFO_RETURN, returnMsgHandler, 0);
+}
+
 int main(int argc, char **argv) {
 	
 	
@@ -372,6 +380,8 @@ int main(int argc, char **argv) {
 	//Show logo
 	RenderTGDSLogoMainEngine((uint8*)&TGDSLogoLZSSCompressed[0], TGDSLogoLZSSCompressed_size);
 	
+	InstallSoundSys();
+	
 	//Init TGDS FS Directory Iterator Context(s). Mandatory to init them like this!! Otherwise several functions won't work correctly.
 	menuIteratorfileClassListCtx = initFileList();
 	cleanFileList(menuIteratorfileClassListCtx);
@@ -395,7 +405,15 @@ int main(int argc, char **argv) {
 		scanKeys();
 		
 		if (keysDown() & KEY_X){
-			printf("X KEY PRESSED!");
+			
+			returnMsg msg;
+			sprintf((char*)&msg.data[0], "%s", "Test message using libnds FIFO API!");
+			if(fifoSendDatamsg(FIFO_SNDSYS, sizeof(msg), (u8*) &msg) == true){
+				//printf("X: Channel: %d Message Sent! ", FIFO_RETURN);
+			}
+			else{
+				//printf("X: Channel: %d Message FAIL! ", FIFO_RETURN);
+			}
 			
 			while(keysDown() & KEY_X){
 				scanKeys();
@@ -625,9 +643,9 @@ int main(int argc, char **argv) {
 		
 		
 		// TSC Test.
-		struct XYTscPos touch;
-		XYReadScrPosUser(&touch);
-		printfCoords(0, 15, " x:%d y:%d", touch.touchXpx, touch.touchYpx);	//clean old
+		//struct XYTscPos touch;
+		//XYReadScrPosUser(&touch);
+		//printfCoords(0, 11, " x:%d y:%d", touch.touchXpx, touch.touchYpx);	//clean old
 		
 		//GDB Debug Start
 		

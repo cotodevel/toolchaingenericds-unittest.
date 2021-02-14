@@ -28,7 +28,23 @@ USA
 #include "timerTGDS.h"
 #include "biosTGDS.h"
 #include "CPUARMTGDS.h"
+#include "libndsFIFO.h"
 
+static void returnMsgHandler(int bytes, void* user_data);
+
+//Should ARM9 send a message, then, it'll be received and replied
+static void returnMsgHandler(int bytes, void* user_data)
+{
+	returnMsg msg;
+	fifoGetDatamsg(FIFO_SNDSYS, bytes, (u8*) &msg);
+	fifoSendDatamsg(FIFO_RETURN, bytes, (u8*) &msg);
+}
+
+static void InstallSoundSys()
+{
+	/* Install FIFO */
+	fifoSetDatamsgHandler(FIFO_SNDSYS, returnMsgHandler, 0);
+}
 
 //---------------------------------------------------------------------------------
 int main(int _argc, sint8 **_argv) {
@@ -38,7 +54,8 @@ int main(int _argc, sint8 **_argv) {
 	//wait for VRAM D to be assigned from ARM9->ARM7 (ARM7 has load/store on byte/half/words on VRAM)
 	while (!(*((vuint8*)0x04000240) & 0x2));
 	
-	installWifiFIFO();		
+	installWifiFIFO();
+	InstallSoundSys();
 	
 	int argBuffer[MAXPRINT7ARGVCOUNT];
 	memset((unsigned char *)&argBuffer[0], 0, sizeof(argBuffer));

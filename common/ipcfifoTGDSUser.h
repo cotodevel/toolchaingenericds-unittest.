@@ -41,6 +41,17 @@ struct sIPCSharedTGDSSpecific {
 	uint32 frameCounter9;	//VBLANK counter9
 };
 
+//libnds FIFO
+typedef struct
+{
+	u8 count;
+	u8 data[96];
+	u8 channel;
+} returnMsg;
+
+#define FIFO_SNDSYS FIFO_USER_01
+#define FIFO_RETURN FIFO_USER_02
+
 #ifdef ARM9
 
 //TGDS Memory Layout ARM7/ARM9 Cores
@@ -57,7 +68,7 @@ extern "C" {
 #endif
 
 //NOT weak symbols : the implementation of these is project-defined (here)
-extern void HandleFifoNotEmptyWeakRef(uint32 cmd1,uint32 cmd2);
+extern void HandleFifoNotEmptyWeakRef(volatile u32 cmd1);
 extern void HandleFifoEmptyWeakRef(uint32 cmd1,uint32 cmd2);
 
 extern struct sIPCSharedTGDSSpecific* getsIPCSharedTGDSSpecific();
