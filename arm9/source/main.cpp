@@ -43,6 +43,8 @@ USA
 #include "c_regression.h"
 #include "cpptests.h"
 #include "libndsFIFO.h"
+#include "xenofunzip.h"
+#include "cartHeader.h"
 
 struct FileClassList * menuIteratorfileClassListCtx = NULL;
 char curChosenBrowseFile[256+1];
@@ -344,6 +346,9 @@ static void InstallSoundSys()
 	fifoSetDatamsgHandler(FIFO_RETURN, returnMsgHandler, 0);
 }
 
+char args[8][MAX_TGDSFILENAME_LENGTH];
+char *argvs[8];
+
 int main(int argc, char **argv) {
 	
 	
@@ -391,6 +396,32 @@ int main(int argc, char **argv) {
 	
 	menuShow();
 	
+	/*
+	//Tested untar code: takes a tar + gzipped archive file and creates a new folder, then decompress all files in archive in their respective directories
+	clrscr();
+	printf(" --");
+	printf(" --");
+	
+	int argCount = 2;
+	
+	strcpy(&args[0][0], "-l");	//Arg0
+	strcpy(&args[1][0], "0:/demo-simple.tar.gz");	//Arg1
+	strcpy(&args[2][0], "d /");	//Arg2
+	
+	int i = 0;
+	for(i = 0; i < argCount; i++){
+		argvs[i] = (char*)&args[i][0];
+	}
+	
+	extern int untgzmain(int argc,char **argv);
+	
+	untgzmain(argCount, argvs);
+	
+	printf("untgzmain end");
+	while(1==1){
+		swiDelay(1);
+	}
+	*/
 	static bool GDBEnabled = false;
 	while(1) {
 		if(pendingPlay == true){
