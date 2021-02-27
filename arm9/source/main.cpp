@@ -422,7 +422,6 @@ int main(int argc, char **argv) {
 		swiDelay(1);
 	}
 	*/
-	static bool GDBEnabled = false;
 	while(1) {
 		if(pendingPlay == true){
 			internalCodecType = playSoundStream(curChosenBrowseFile, _FileHandleVideo, _FileHandleAudio);
@@ -565,19 +564,6 @@ int main(int argc, char **argv) {
 			}
 		}
 		
-		if (keysDown() & KEY_LEFT){
-			if(GDBEnabled == false){
-				GDBEnabled = true;
-			}
-			else{
-				GDBEnabled = false;
-			}
-			
-			while(keysDown() & KEY_LEFT){
-				scanKeys();
-			}
-		}
-		
 		if (keysDown() & KEY_RIGHT){
 			strcpy(curChosenBrowseFile, (const char *)"0:/rain.ima");
 			pendingPlay = true;
@@ -671,74 +657,10 @@ int main(int argc, char **argv) {
 			menuShow();
 		}
 		
-		
-		
 		// TSC Test.
 		//struct XYTscPos touch;
 		//XYReadScrPosUser(&touch);
 		//printfCoords(0, 11, " x:%d y:%d", touch.touchXpx, touch.touchYpx);	//clean old
-		
-		//GDB Debug Start
-		
-		//GDB Stub Process must run here
-		if(GDBEnabled == true){
-			int retGDBVal = remoteStubMain();
-			if(retGDBVal == remoteStubMainWIFINotConnected){
-				if (switch_dswnifi_mode(dswifi_gdbstubmode) == true){
-					clrscr();
-					//Show IP and port here
-					printf("    ");
-					printf("    ");
-					printf("[Connect to GDB]: NDSMemory Mode!");
-					char IP[16];
-					printf("Port:%d GDB IP:%s",remotePort, print_ip((uint32)Wifi_GetIP(), IP));
-					remoteInit();
-				}
-				else{
-					//GDB Client Reconnect:ERROR
-				}
-			}
-			else if(retGDBVal == remoteStubMainWIFIConnectedGDBDisconnected){
-				setWIFISetup(false);
-				clrscr();
-				printf("    ");
-				printf("    ");
-				printf("Remote GDB Client disconnected. ");
-				printf("Press A to retry this GDB Session. ");
-				printf("Press B to reboot NDS GDB Server ");
-				
-				int keys = 0;
-				while(1){
-					scanKeys();
-					keys = keysDown();
-					if (keys&KEY_A){
-						break;
-					}
-					if (keys&KEY_B){
-						break;
-					}
-					IRQWait(IRQ_HBLANK);
-				}
-				
-				if (keys&KEY_B){
-					main(argc, argv);
-				}
-				
-				if (switch_dswnifi_mode(dswifi_gdbstubmode) == true){ // gdbNdsStart() called
-					reconnectCount++;
-					clrscr();
-					//Show IP and port here
-					printf("    ");
-					printf("    ");
-					printf("[Re-Connect to GDB]: NDSMemory Mode!");
-					char IP[16];
-					printf("Retries: %d",reconnectCount);
-					printf("Port:%d GDB IP:%s", remotePort, print_ip((uint32)Wifi_GetIP(), IP));
-					remoteInit();
-				}
-			}
-		}
-		//GDB Debug End
 		
 		handleARM9SVC();	/* Do not remove, handles TGDS services */
 		IRQWait(IRQ_HBLANK);
