@@ -349,6 +349,11 @@ static void InstallSoundSys()
 char args[8][MAX_TGDSFILENAME_LENGTH];
 char *argvs[8];
 
+//ToolchainGenericDS-LinkedModule User implementation: Called if TGDS-LinkedModule fails to reload ARM9.bin from DLDI.
+int TGDSProjectReturnFromLinkedModule() __attribute__ ((optnone)) {
+	return -1;
+}
+
 int main(int argc, char **argv) {
 	
 	
