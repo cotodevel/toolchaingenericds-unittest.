@@ -433,7 +433,7 @@ void HandleSimpleTriangleDemo(){
 		
 		glPopMatrix(1);
 			
-		glFlush();
+		glFlush(GL_WBUFFERING);
 
 		IRQWait(IRQ_VBLANK);
 
@@ -841,7 +841,7 @@ int main(int argc, char **argv) {
 				
 			glEnd();
 			glPopMatrix(1);
-			glFlush();
+			glFlush(GL_WBUFFERING);
 		}
 		
 		handleARM9SVC();	/* Do not remove, handles TGDS services */
