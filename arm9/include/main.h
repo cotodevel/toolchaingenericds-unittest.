@@ -40,7 +40,6 @@ extern struct FileClassList * menuIteratorfileClassListCtx;			//Menu Directory I
 extern char curChosenBrowseFile[256+1];
 extern char globalPath[MAX_TGDSFILENAME_LENGTH+1];
 extern int internalCodecType;//Internal because WAV raw decompressed buffers are used if Uncompressed WAV or ADPCM
-extern void HandleSimpleTriangleDemo();
 
 extern char args[8][MAX_TGDSFILENAME_LENGTH];
 extern char *argvs[8];

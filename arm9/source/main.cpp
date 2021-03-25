@@ -359,88 +359,6 @@ int TGDSProjectReturnFromLinkedModule() __attribute__ ((optnone)) {
 	return -1;
 }
 
-//Implementation, unused.
-void HandleSimpleTriangleDemo(){
-	float rotateX = 0.0;
-	float rotateY = 0.0;
-
-	//set mode 0, enable BG0 and set it to 3D
-	SETDISPCNT_MAIN(MODE_0_3D);
-
-	// initialize gl
-	glReset();
-	
-	// enable antialiasing
-	glEnable(GL_ANTIALIAS);
-	
-	// setup the rear plane
-	glClearColor(0,0,0,31); // BG must be opaque for AA to work
-	glClearPolyID(63); // BG must have a unique polygon ID for AA to work
-	glClearDepth(0x7FFF);
-
-	//this should work the same as the normal gl call
-	glViewPort(0,0,255,191);
-	
-	//any floating point gl call is being converted to fixed prior to being implemented
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	gluPerspective(35, 255.0 / 192.0, 0.1, 40);
-	
-	gluLookAt(	0.0, 0.0, 1.0,		//camera possition 
-				0.0, 0.0, 0.0,		//look at
-				0.0, 1.0, 0.0);		//up
-	
-	while(1) {
-		glPushMatrix();
-
-		//move it away from the camera
-		/*glTranslatef32*/glTranslate3f32(0, 0, floatof32(-1));
-				
-		glRotateX(rotateX);
-		glRotateY(rotateY);
-		
-		
-		glMatrixMode(GL_MODELVIEW);
-
-
-
-		//not a real gl function and will likely change
-		glPolyFmt(POLY_ALPHA(31) | POLY_CULL_NONE);
-
-		scanKeys();
-		
-		u16 keys = keysHeld();
-		
-		if((keys & KEY_UP)) rotateX += 3;
-		if((keys & KEY_DOWN)) rotateX -= 3;
-		if((keys & KEY_LEFT)) rotateY += 3;
-		if((keys & KEY_RIGHT)) rotateY -= 3;
-		
-
-		//draw the obj
-		glBegin(GL_TRIANGLE);
-			
-			glColor3b(255,0,0);
-			glVertex3v16(intov16(-1),intov16(-1),0);
-
-			glColor3b(0,255,0);
-			glVertex3v16(intov16(1), intov16(-1), 0);
-
-			glColor3b(0,0,255);
-			glVertex3v16(intov16(0), intov16(1), 0);
-			
-		glEnd();
-		
-		glPopMatrix(1);
-			
-		glFlush(GL_WBUFFERING);
-
-		IRQWait(IRQ_VBLANK);
-
-		if(keys & KEY_START) break;
-	}
-}
-
 int main(int argc, char **argv) {
 	
 	
@@ -495,28 +413,13 @@ int main(int argc, char **argv) {
 		//set mode 0, enable BG0 and set it to 3D
 		SETDISPCNT_MAIN(MODE_0_3D);
 
-		// initialize gl
-		glReset();
-		
-		// enable antialiasing
-		glEnable(GL_ANTIALIAS);
-		
-		// setup the rear plane
-		glClearColor(0,0,0,31); // BG must be opaque for AA to work
-		glClearPolyID(63); // BG must have a unique polygon ID for AA to work
-		glClearDepth(0x7FFF);
-
 		//this should work the same as the normal gl call
 		glViewPort(0,0,255,191);
 		
-		//any floating point gl call is being converted to fixed prior to being implemented
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		gluPerspective(35, 255.0 / 192.0, 0.1, 40);
+		glClearColor(0,0,0);
+		glClearDepth(0x7FFF);
 		
-		gluLookAt(	0.0, 0.0, 1.0,		//camera possition 
-					0.0, 0.0, 0.0,		//look at
-					0.0, 1.0, 0.0);		//up
+		
 	}
 	
 	/*
@@ -788,9 +691,27 @@ int main(int argc, char **argv) {
 			printfCoords(0, 16, " No Press (X/Y):%d %d            -", touch.touchXpx, touch.touchYpx);
 		}
 		else{
+			
+			glReset();
+	
+			//any floating point gl call is being converted to fixed prior to being implemented
+			gluPerspective(35, 256.0 / 192.0, 0.1, 40);
+
+			gluLookAt(	0.0, 0.0, 1.0,		//camera possition 
+						0.0, 0.0, 0.0,		//look at
+						0.0, 1.0, 0.0);		//up
+
 			glPushMatrix();
+
 			//move it away from the camera
 			glTranslate3f32(0, 0, floatof32(-1));
+					
+			glRotateX(rotateX);
+			glRotateY(rotateY);			
+			glMatrixMode(GL_MODELVIEW);
+			
+			//not a real gl function and will likely change
+			glPolyFmt(POLY_ALPHA(31) | POLY_CULL_NONE);
 			
 			//dead simple range check
 			int sliceScreenX = (256/2);
@@ -820,28 +741,21 @@ int main(int argc, char **argv) {
 				printfCoords(0, 16, " Bottom Right(X/Y):%d %d ", touch.touchXpx, touch.touchYpx);
 			}
 			
-			glRotateX(rotateX);	
-			glRotateY(rotateY);
-			
-			glMatrixMode(GL_MODELVIEW);
-			//not a real gl function and will likely change
-			glPolyFmt(POLY_ALPHA(31) | POLY_CULL_NONE);
-			
 			//draw the obj
 			glBegin(GL_TRIANGLE);
 				
-				glColor3b(255,0,0);
+				glColor3b(31,0,0);
 				glVertex3v16(intov16(-1),intov16(-1),0);
 
-				glColor3b(0,255,0);
+				glColor3b(0,31,0);
 				glVertex3v16(intov16(1), intov16(-1), 0);
 
-				glColor3b(0,0,255);
+				glColor3b(0,0,31);
 				glVertex3v16(intov16(0), intov16(1), 0);
 				
 			glEnd();
 			glPopMatrix(1);
-			glFlush(GL_WBUFFERING);
+			glFlush();
 		}
 		
 		handleARM9SVC();	/* Do not remove, handles TGDS services */
