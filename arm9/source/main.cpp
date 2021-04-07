@@ -697,7 +697,7 @@ int main(int argc, char **argv) {
 			glPushMatrix();
 
 			//move it away from the camera
-			glTranslate3f32(0, 0, floatof32(-1));
+			glTranslate3f32(0, 0, floattof32(-1));
 					
 			glRotateX(rotateX);
 			glRotateY(rotateY);			
@@ -738,13 +738,13 @@ int main(int argc, char **argv) {
 			glBegin(GL_TRIANGLE);
 				
 				glColor3b(31,0,0);
-				glVertex3v16(intov16(-1),intov16(-1),0);
+				glVertex3v16(inttov16(-1),inttov16(-1),0);
 
 				glColor3b(0,31,0);
-				glVertex3v16(intov16(1), intov16(-1), 0);
+				glVertex3v16(inttov16(1), inttov16(-1), 0);
 
 				glColor3b(0,0,31);
-				glVertex3v16(intov16(0), intov16(1), 0);
+				glVertex3v16(inttov16(0), inttov16(1), 0);
 				
 			glEnd();
 			glPopMatrix(1);
