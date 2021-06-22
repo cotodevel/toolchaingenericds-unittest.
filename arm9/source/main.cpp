@@ -90,7 +90,7 @@ static bool ShowBrowserC(char * Path, char * outBuf, bool * pendingPlay, int * c
 	scanKeys();
 	while((keysDown() & KEY_START) || (keysDown() & KEY_A) || (keysDown() & KEY_B)){
 		scanKeys();
-		IRQWait(IRQ_HBLANK);
+		IRQWait(0, IRQ_VBLANK);
 	}
 	
 	*pendingPlay = false;
@@ -181,7 +181,7 @@ static bool ShowBrowserC(char * Path, char * outBuf, bool * pendingPlay, int * c
 			while(pressed&KEY_DOWN){
 				scanKeys();
 				pressed = keysDown();
-				IRQWait(IRQ_HBLANK);
+				IRQWait(0, IRQ_VBLANK);
 			}
 		}
 		
@@ -200,7 +200,7 @@ static bool ShowBrowserC(char * Path, char * outBuf, bool * pendingPlay, int * c
 			while(pressed&KEY_DOWN){
 				scanKeys();
 				pressed = keysDown();
-				IRQWait(IRQ_HBLANK);
+				IRQWait(0, IRQ_VBLANK);
 			}
 		}
 		
@@ -219,7 +219,7 @@ static bool ShowBrowserC(char * Path, char * outBuf, bool * pendingPlay, int * c
 			while(pressed&KEY_LEFT){
 				scanKeys();
 				pressed = keysDown();
-				IRQWait(IRQ_HBLANK);
+				IRQWait(0, IRQ_VBLANK);
 			}
 		}
 		
@@ -238,7 +238,7 @@ static bool ShowBrowserC(char * Path, char * outBuf, bool * pendingPlay, int * c
 			while(pressed&KEY_RIGHT){
 				scanKeys();
 				pressed = keysDown();
-				IRQWait(IRQ_HBLANK);
+				IRQWait(0, IRQ_VBLANK);
 			}
 		}
 		
@@ -247,7 +247,7 @@ static bool ShowBrowserC(char * Path, char * outBuf, bool * pendingPlay, int * c
 			while(pressed&KEY_UP){
 				scanKeys();
 				pressed = keysDown();
-				IRQWait(IRQ_HBLANK);
+				IRQWait(0, IRQ_VBLANK);
 			}
 		}
 		
@@ -265,7 +265,7 @@ static bool ShowBrowserC(char * Path, char * outBuf, bool * pendingPlay, int * c
 			while(pressed&KEY_UP){
 				scanKeys();
 				pressed = keysDown();
-				IRQWait(IRQ_HBLANK);
+				IRQWait(0, IRQ_VBLANK);
 			}
 		}
 		
@@ -520,7 +520,7 @@ int main(int argc, char **argv) {
 			scanKeys();
 			while(keysDown() & KEY_L){
 				scanKeys();
-				IRQWait(IRQ_HBLANK);
+				IRQWait(0, IRQ_VBLANK);
 			}
 			menuShow();
 		}
@@ -545,7 +545,7 @@ int main(int argc, char **argv) {
 			scanKeys();
 			while(keysDown() & KEY_R){
 				scanKeys();
-				IRQWait(IRQ_HBLANK);
+				IRQWait(0, IRQ_VBLANK);
 			}
 			menuShow();
 		}
@@ -558,7 +558,7 @@ int main(int argc, char **argv) {
 			scanKeys();
 			while(keysDown() & KEY_UP){
 				scanKeys();
-				IRQWait(IRQ_HBLANK);
+				IRQWait(0, IRQ_VBLANK);
 			}
 		}
 		
@@ -570,7 +570,7 @@ int main(int argc, char **argv) {
 			scanKeys();
 			while(keysDown() & KEY_DOWN){
 				scanKeys();
-				IRQWait(IRQ_HBLANK);
+				IRQWait(0, IRQ_VBLANK);
 			}
 		}
 		
@@ -752,7 +752,7 @@ int main(int argc, char **argv) {
 		}
 		
 		handleARM9SVC();	/* Do not remove, handles TGDS services */
-		IRQWait(IRQ_HBLANK);
+		IRQVBlankWait();
 	}
 
 	return 0;
