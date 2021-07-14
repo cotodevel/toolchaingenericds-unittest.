@@ -359,7 +359,7 @@ int TGDSProjectReturnFromLinkedModule() __attribute__ ((optnone)) {
 	return -1;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv) __attribute__ ((optnone)) {
 	
 	/*			TGDS 1.6 Standard ARM9 Init code start	*/
 	bool isTGDSCustomConsole = false;	//set default console or custom console: default console
@@ -665,7 +665,7 @@ int main(int argc, char **argv) {
 				break;
 				case (3):{ //posix_filehandle_tests
 					opmock_test_suite_reset();
-					opmock_register_test(testVerifyTGDSPosixFilehandle_fopen_method, "testVerifyTGDSPosixFilehandle_fopen_method");
+					opmock_register_test(testVerifyTGDSPosixFilehandle_fopen_fclose_method, "testVerifyTGDSPosixFilehandle_fopen_fclose_method");
 					opmock_test_suite_run();
 				}
 				break;

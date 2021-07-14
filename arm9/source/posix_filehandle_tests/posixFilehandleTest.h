@@ -8,7 +8,8 @@
 extern "C" {
 #endif
 
-extern void testVerifyTGDSPosixFilehandle_fopen_method();
+extern void testVerifyTGDSPosixFilehandle_dummy_method(); //guaranteed to pass (tests unit test environment)
+extern void testVerifyTGDSPosixFilehandle_fopen_fclose_method();
 
 #ifdef __cplusplus
 }
