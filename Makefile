@@ -89,7 +89,8 @@ export DIRS_ARM9_SRC = data/	\
 			source/c_partial_mock/	\
 			source/c_regression/	\
 			source/cpp_tests/	\
-
+			source/posix_filehandle_tests/
+			
 export DIRS_ARM9_HEADER = data/	\
 			build/	\
 			include/	\
@@ -102,6 +103,7 @@ export DIRS_ARM9_HEADER = data/	\
 			source/c_partial_mock/	\
 			source/c_regression/	\
 			source/cpp_tests/	\
+			source/posix_filehandle_tests/
 
 # Build Target(s)	(both processors here)
 all: $(EXECUTABLE_FNAME)
