@@ -48,6 +48,7 @@ USA
 #include "videoGL.h"
 #include "videoTGDS.h"
 #include "math.h"
+#include "posixFilehandleTest.h"
 
 struct FileClassList * menuIteratorfileClassListCtx = NULL;
 char curChosenBrowseFile[256+1];
@@ -72,7 +73,6 @@ static inline void menuShow(){
 	printf("     ");
 	printf("     ");
 	printf("ToolchainGenericDS-CPPUnitTest: ");
-	printf("Current file: %s ", curChosenBrowseFile);
 	printf("(Select): This menu. ");
 	printf("(Start): FileBrowser : (A) Play WAV/IMA-ADPCM (Intel) strm ");
 	printf("(D-PAD:UP/DOWN): Volume + / - ");
@@ -331,8 +331,8 @@ static bool ShowBrowserC(char * Path, char * outBuf, bool * pendingPlay, int * c
 	return false;
 }
 
-#define ListSize (int)(3)
-static char * TestList[ListSize] = {"c_partial_mock", "c_regression", "cpp_tests"};
+#define ListSize (int)(4)
+static char * TestList[ListSize] = {"c_partial_mock", "c_regression", "cpp_tests", "posix_filehandle_tests"};
 
 static void returnMsgHandler(int bytes, void* user_data);
 
@@ -661,6 +661,12 @@ int main(int argc, char **argv) {
 				break;
 				case (2):{ //cpp_tests
 					doCppTests(argc, argv);
+				}
+				break;
+				case (3):{ //posix_filehandle_tests
+					opmock_test_suite_reset();
+					opmock_register_test(testVerifyTGDSPosixFilehandle_fopen_method, "testVerifyTGDSPosixFilehandle_fopen_method");
+					opmock_test_suite_run();
 				}
 				break;
 			}

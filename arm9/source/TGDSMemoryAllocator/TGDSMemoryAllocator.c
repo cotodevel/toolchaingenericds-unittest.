@@ -40,7 +40,7 @@ struct AllocatorInstance * getProjectSpecificMemoryAllocatorSetup(u32 ARM7Malloc
 	customMemoryAllocator->ARM7MallocSize = ARM7MallocSize;
 	
 	customMemoryAllocator->ARM9MallocStartaddress = (u32)sbrk(0);
-	customMemoryAllocator->memoryToAllocate = (2500*1024);	//Alloc, but if overflow, just discard the memory (right after program address), clean up, and re-use it.
+	customMemoryAllocator->memoryToAllocate = (2500*1024);
 	customMemoryAllocator->CustomTGDSMalloc9 = (TGDSARM9MallocHandler)&Xmalloc;
 	customMemoryAllocator->CustomTGDSCalloc9 = (TGDSARM9CallocHandler)&Xcalloc;
 	customMemoryAllocator->CustomTGDSFree9 = (TGDSARM9FreeHandler)&Xfree;
@@ -56,7 +56,11 @@ struct AllocatorInstance * getProjectSpecificMemoryAllocatorSetup(u32 ARM7Malloc
 	//DLDI
 	customMemoryAllocator->DLDI9StartAddress = (u32)&_io_dldi_stub;
 	
-	//Memory Setup: ARM7 TGDS 96K = 0x037f8000 ~ 0x03810000. TGDS Sound Streaming code: Disabled/Custom
-	WRAM_CR = WRAM_0KARM9_32KARM7;
+	//Memory Setup: 
+	//NTR: ARM7 TGDS 64K = 0x03800000 ~ 0x03810000. TGDS Sound Streaming code: Enabled
+	//TWL: ARM7 TGDS 96K = 0x037f8000 ~ 0x03810000. TGDS Sound Streaming code: Disabled/Custom
+	if(__dsimode == true){
+		WRAM_CR = WRAM_0KARM9_32KARM7;
+	}
 	return customMemoryAllocator;
 }
