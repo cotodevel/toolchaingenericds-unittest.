@@ -85,3 +85,55 @@ int testPosixFilehandle_sprintf_fputs_fscanf_method() __attribute__ ((optnone)) 
 	fclose(fileName);
 	return res;
 }
+
+int testPosixFilehandle_fread_fwrite_method() __attribute__ ((optnone)) {
+	int res = -1;
+	int i = 0;
+	int bufSize = (128*1024);
+	FILE* fileTest;
+	char * fileNameTest = "0:/test.txt";
+    fileTest = fopen(fileNameTest, "w+");
+    
+	u8 * bufferTestRead = TGDSARM9Malloc(bufSize);
+	u8 * bufferTestWrite = TGDSARM9Malloc(bufSize);
+	for(i = 0; i < bufSize; i++){
+		bufferTestRead[i] = (u8)((u8)rand() & 0xFF);
+	}
+	
+	//1: read random buffer into target file
+	if(fwrite(bufferTestRead, 1, bufSize, fileTest) == bufSize){
+		
+		//2: close file. And read it again
+		sint32 FDToSync = fileno(fileTest);
+		fsync(FDToSync);
+		fclose(fileTest);
+		fileTest = fopen(fileNameTest, "r");
+		if(fileTest != NULL){
+			int readBuf = fread(bufferTestWrite, 1, bufSize, fileTest);
+			if(readBuf == bufSize){
+				bool correctCheck = true;
+				
+				for(i = 0; i < bufSize; i++){
+					if(bufferTestRead[i] != bufferTestWrite[i]){
+						correctCheck = false;
+					}
+				}
+				
+				if(correctCheck == true){
+					res = 0;
+				}
+			}
+			else{
+				printf("failed reading complete buffer: %d bytes", readBuf);
+			}
+		}
+	}
+	else{
+		printf("failed writing complete buffer");
+	}
+	
+	fclose(fileTest);
+	TGDSARM9Free(bufferTestWrite);
+	TGDSARM9Free(bufferTestRead);
+	return res;
+}

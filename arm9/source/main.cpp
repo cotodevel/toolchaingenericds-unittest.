@@ -683,6 +683,13 @@ int main(int argc, char **argv) __attribute__ ((optnone)) {
 						printf("testPosixFilehandle_sprintf_fputs_fscanf_method() ERROR >%d", TGDSPrintfColor_Red);
 					}
 					
+					if(testPosixFilehandle_fread_fwrite_method() == 0){
+						printf("testPosixFilehandle_fread_fwrite_method() OK >%d", TGDSPrintfColor_Green);
+					}
+					else{
+						printf("testPosixFilehandle_fread_fwrite_method() ERROR >%d", TGDSPrintfColor_Red);
+					}
+					
 				}
 				break;
 			}
