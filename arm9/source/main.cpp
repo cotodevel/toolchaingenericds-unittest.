@@ -664,9 +664,25 @@ int main(int argc, char **argv) __attribute__ ((optnone)) {
 				}
 				break;
 				case (3):{ //posix_filehandle_tests
-					opmock_test_suite_reset();
-					opmock_register_test(testVerifyTGDSPosixFilehandle_fopen_fclose_method, "testVerifyTGDSPosixFilehandle_fopen_fclose_method");
-					opmock_test_suite_run();
+					clrscr();
+					printf(" - - ");
+					printf(" - - ");
+					printf(" - - ");
+					
+					if(testPosixFilehandle_fopen_fclose_method() == 0){
+						printf("testPosixFilehandle_fopen_fclose_method() OK >%d", TGDSPrintfColor_Green);
+					}
+					else{
+						printf("testPosixFilehandle_fopen_fclose_method() ERROR >%d", TGDSPrintfColor_Red);
+					}
+					
+					if(testPosixFilehandle_sprintf_fputs_fscanf_method() == 0){
+						printf("testPosixFilehandle_sprintf_fputs_fscanf_method() OK >%d", TGDSPrintfColor_Green);
+					}
+					else{
+						printf("testPosixFilehandle_sprintf_fputs_fscanf_method() ERROR >%d", TGDSPrintfColor_Red);
+					}
+					
 				}
 				break;
 			}
