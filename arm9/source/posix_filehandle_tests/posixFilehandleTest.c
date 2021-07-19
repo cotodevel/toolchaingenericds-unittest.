@@ -137,3 +137,38 @@ int testPosixFilehandle_fread_fwrite_method() __attribute__ ((optnone)) {
 	TGDSARM9Free(bufferTestRead);
 	return res;
 }
+
+int testPosixFilehandle_fgetc_feof_method() __attribute__ ((optnone)) {
+	int param1 = 1;
+	int res = -1;
+	FILE *fp;
+	u8 * writeBuf = TGDSARM9Malloc(256);
+	int loop=0;
+	char * fileNameTest = "0:/test.txt";
+	char * charTest = "TGDS NTR/TWL App from coto88.bitbucket.io";
+	fp = fopen(fileNameTest, "w+");
+	if(fp != NULL) {
+		fputs(charTest, fp);
+		sint32 FDToSync = fileno(fp);
+		fsync(FDToSync);
+		fclose(fp);
+		fp = fopen(fileNameTest, "r");
+		if(fp != NULL){
+			rewind(fp);
+			while(1) {
+				char a = fgetc(fp);
+				writeBuf[loop] = a;
+				if( feof(fp) ) {
+					break ;
+				}
+				loop++;
+			}
+			if(strncmp((const char*)writeBuf, (char*)&charTest[0], strlen(charTest)) == 0){
+				res = 0;
+			}
+		}
+		fclose(fp);
+	}
+	TGDSARM9Free(writeBuf); 
+	return res;
+}

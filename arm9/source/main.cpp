@@ -690,6 +690,13 @@ int main(int argc, char **argv) __attribute__ ((optnone)) {
 						printf("testPosixFilehandle_fread_fwrite_method() ERROR >%d", TGDSPrintfColor_Red);
 					}
 					
+					if(testPosixFilehandle_fgetc_feof_method() == 0){
+						printf("testPosixFilehandle_fgetc_feof_method() OK >%d", TGDSPrintfColor_Green);
+					}
+					else{
+						printf("testPosixFilehandle_fgetc_feof_method() ERROR >%d", TGDSPrintfColor_Red);
+					}
+					
 				}
 				break;
 			}
