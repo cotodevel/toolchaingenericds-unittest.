@@ -13,6 +13,7 @@ extern int testPosixFilehandle_fopen_fclose_method();
 extern int testPosixFilehandle_sprintf_fputs_fscanf_method();
 extern int testPosixFilehandle_fread_fwrite_method();
 extern int testPosixFilehandle_fgetc_feof_method();
+extern int testPosixFilehandle_fgets_method();
 
 #ifdef __cplusplus
 }

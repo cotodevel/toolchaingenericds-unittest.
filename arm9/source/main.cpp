@@ -697,6 +697,13 @@ int main(int argc, char **argv) __attribute__ ((optnone)) {
 						printf("testPosixFilehandle_fgetc_feof_method() ERROR >%d", TGDSPrintfColor_Red);
 					}
 					
+					if(testPosixFilehandle_fgets_method() == 0){
+						printf("testPosixFilehandle_fgets_method() OK >%d", TGDSPrintfColor_Green);
+					}
+					else{
+						printf("testPosixFilehandle_fgets_method() ERROR >%d", TGDSPrintfColor_Red);
+					}
+					
 				}
 				break;
 			}

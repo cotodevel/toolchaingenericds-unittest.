@@ -172,3 +172,43 @@ int testPosixFilehandle_fgetc_feof_method() __attribute__ ((optnone)) {
 	TGDSARM9Free(writeBuf); 
 	return res;
 }
+
+int testPosixFilehandle_fgets_method() __attribute__ ((optnone)) {
+	int res = -1;
+	FILE* tmpf = fopen("0:/test.txt", "w+");
+    fputs("Alan Turing\n", tmpf);
+    fputs("John von Neumann\n", tmpf);
+    fputs("Alonzo Church\n", tmpf);
+    rewind(tmpf);
+	bool passTest = false;
+    char buf[8];
+    while (fgets(buf, sizeof buf, tmpf) != NULL){
+		if(
+			(strcmp((const char*)buf, (const char*)"Alan Tu") == 0)
+			||
+			(strcmp((const char*)buf, (const char*)"ring") == 0)
+			||
+			(strcmp((const char*)buf, (const char*)"John vo") == 0)
+			||
+			(strcmp((const char*)buf, (const char*)"n Neuma") == 0)
+			||
+			(strcmp((const char*)buf, (const char*)"nn") == 0)
+			||
+			(strcmp((const char*)buf, (const char*)"Alonzo\n") == 0)
+			||
+			(strcmp((const char*)buf, (const char*)"Church\n") == 0)
+		){
+			passTest = true;
+		}
+		else{
+			passTest = false;
+		}
+	}
+    if (feof(tmpf)){
+		if(passTest == true){
+			res = 0;
+		}
+	}
+	fclose(tmpf);
+	return res;
+}
