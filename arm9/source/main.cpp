@@ -704,6 +704,13 @@ int main(int argc, char **argv) __attribute__ ((optnone)) {
 						printf("testPosixFilehandle_fgets_method() ERROR >%d", TGDSPrintfColor_Red);
 					}
 					
+					if(testPosixFilehandle_fseek_rewind_method() == 0){
+						printf("testPosixFilehandle_fseek_rewind_method() OK >%d", TGDSPrintfColor_Green);
+					}
+					else{
+						printf("testPosixFilehandle_fseek_rewind_method() ERROR >%d", TGDSPrintfColor_Red);
+					}
+					
 				}
 				break;
 			}

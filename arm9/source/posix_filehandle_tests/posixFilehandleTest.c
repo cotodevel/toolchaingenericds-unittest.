@@ -215,33 +215,54 @@ int testPosixFilehandle_fgets_method() __attribute__ ((optnone)) {
 
 int testPosixFilehandle_fseek_rewind_method() __attribute__ ((optnone)) {
 	int res = -1;
-	char * fname = NULL;
-	if(__dsimode == true){
-		fname = "0:/ToolchainGenericDS-UnitTest.srl";
-	}
-	else{
-		fname = "0:/ToolchainGenericDS-UnitTest.nds";
-	}
-	int StructFD = OpenFileFromPathGetStructFD(fname);	//fopen -> fileno (generates internal TGDS Struct FileDescriptor index->object)
-	if(StructFD != structfd_posixInvalidFileDirOrBufferHandle){
-		struct fd *pfd = getStructFD(StructFD);
-		if(pfd->cur_entry.d_ino == StructFD){	
-			if(closeFileFromStructFD(StructFD) == true){	//fdopen (gets FILE * handle from internal TGDS Struct FileDescriptor index) -> fclose
-				//internal TGDS Struct FileDescriptor object should be invalid (structfd_posixInvalidFileDirOrBufferHandle) by now
-				if(pfd->cur_entry.d_ino == StructFD){
-					res = -1;	// 2/2 = Fail. Object still exists even when it was destroyed (FS bug)
+	FILE *fp;  
+	char buf[30];
+	char * charTest = "This is sonoo jaiswal";
+	fp = fopen("0:/test.txt","w+");  
+	fputs("This is javatpoint", fp);  
+    
+	fseek( fp, 8, SEEK_SET );  
+	fputs("sonoo jaiswal", fp);  
+	fsync(fileno(fp));
+	fclose(fp); 
+	
+	fp = fopen("0:/test.txt","r");
+	if(fp != NULL){
+		fread((u8*)&buf[0], 1, sizeof(buf), fp);
+		fclose(fp); 
+		if(strncmp((const char*)&buf[0], (const char*)charTest, strlen(charTest)) == 0){
+			fp = fopen("0:/test.txt","w+");  
+			fputs("hello world", fp);  
+			fsync(fileno(fp));
+			fclose(fp);
+			fp = fopen("0:/test.txt","r");  
+			fseek(fp, 0, SEEK_SET);
+			int a = ftell(fp);
+			fseek(fp, 5, SEEK_SET);
+			int b = ftell(fp);
+			fseek(fp, 0, SEEK_END);
+			int c = ftell(fp);
+			fsync(fileno(fp));
+			fclose(fp);
+			if((a==0)&&(b==5)&&(c==11)){
+				char * charTest2 = "rewind test";
+				char ch[20];
+				fp = fopen("0:/test.txt", "w+");
+				fwrite(charTest2, 1, strlen(charTest2), fp);
+				fsync(fileno(fp));
+				rewind(fp);//After writing, the file location pointer changes to the beginning
+				fgets(ch,12,fp);
+				if(strncmp((const char*)&ch[0], (const char*)charTest2, strlen(charTest2)) == 0){
+					rewind(fp);//Go to the beginning
+					fgets(ch, 15, fp);
+					if(strncmp((const char*)&ch[0], (const char*)charTest2, strlen(charTest2)) == 0){
+						res = 0;
+					}
 				}
-				else{
-					res = 0; // 2/2 = OK
-				}
-			}
-			else{
-				// 2/2 = Fail. Could not close file handle
+				fclose(fp);
 			}
 		}
-		else{
-			// 1/2 = Fail. Couldn't open internal TGDS Struct FileDescriptor index->object
-		}
+		
 	}
 	return res;
 }
