@@ -13,13 +13,27 @@
  * Captures problem with warning about unexpected call
 */
 
-int testPosixFilehandle_dummy_method() __attribute__ ((optnone)) {
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
+
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
+int testPosixFilehandle_dummy_method() {
 	int param1 = 1;
 	int res = -1;
 	return res;
 }
 
-int testPosixFilehandle_fopen_fclose_method() __attribute__ ((optnone)) {
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
+
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
+int testPosixFilehandle_fopen_fclose_method() {
 	int res = -1;
 	char * fname = NULL;
 	if(__dsimode == true){
@@ -52,7 +66,14 @@ int testPosixFilehandle_fopen_fclose_method() __attribute__ ((optnone)) {
 	return res;
 }
 
-int testPosixFilehandle_sprintf_fputs_fscanf_method() __attribute__ ((optnone)) {
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
+
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
+int testPosixFilehandle_sprintf_fputs_fscanf_method() {
 	int res = -1;
 	int i  =0;
 	char str1[10], str2[10];
@@ -86,7 +107,14 @@ int testPosixFilehandle_sprintf_fputs_fscanf_method() __attribute__ ((optnone)) 
 	return res;
 }
 
-int testPosixFilehandle_fread_fwrite_method() __attribute__ ((optnone)) {
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
+
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
+int testPosixFilehandle_fread_fwrite_method() {
 	int res = -1;
 	int i = 0;
 	int bufSize = (128*1024);
@@ -138,7 +166,14 @@ int testPosixFilehandle_fread_fwrite_method() __attribute__ ((optnone)) {
 	return res;
 }
 
-int testPosixFilehandle_fgetc_feof_method() __attribute__ ((optnone)) {
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
+
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
+int testPosixFilehandle_fgetc_feof_method() {
 	int param1 = 1;
 	int res = -1;
 	FILE *fp;
@@ -173,7 +208,14 @@ int testPosixFilehandle_fgetc_feof_method() __attribute__ ((optnone)) {
 	return res;
 }
 
-int testPosixFilehandle_fgets_method() __attribute__ ((optnone)) {
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
+
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
+int testPosixFilehandle_fgets_method() {
 	int res = -1;
 	FILE* tmpf = fopen("0:/test.txt", "w+");
     fputs("Alan Turing\n", tmpf);
@@ -213,7 +255,14 @@ int testPosixFilehandle_fgets_method() __attribute__ ((optnone)) {
 	return res;
 }
 
-int testPosixFilehandle_fseek_rewind_method() __attribute__ ((optnone)) {
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
+
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
+int testPosixFilehandle_fseek_rewind_method() {
 	int res = -1;
 	FILE *fp;  
 	char buf[30];
