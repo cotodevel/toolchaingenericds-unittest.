@@ -51,6 +51,31 @@ USA
 #include "posixFilehandleTest.h"
 #include "loader.h"
 
+//true: pen touch
+//false: no tsc activity
+static bool get_pen_delta( int *dx, int *dy ){
+	static int prev_pen[2] = { 0x7FFFFFFF, 0x7FFFFFFF };
+	
+	// TSC Test.
+	struct XYTscPos touch;
+	XYReadScrPosUser(&touch);
+	
+	if( (touch.touchYpx == 0) && (touch.touchXpx == 0) ){
+		prev_pen[0] = prev_pen[1] = 0x7FFFFFFF;
+		*dx = *dy = 0;
+		return false;
+	}
+	else{
+		if( prev_pen[0] != 0x7FFFFFFF ){
+			*dx = (prev_pen[0] - touch.touchXpx);
+			*dy = (prev_pen[1] - touch.touchYpx);
+		}
+		prev_pen[0] = touch.touchXpx;
+		prev_pen[1] = touch.touchYpx;
+	}
+	return true;
+}
+
 struct FileClassList * menuIteratorfileClassListCtx = NULL;
 char curChosenBrowseFile[256+1];
 char globalPath[MAX_TGDSFILENAME_LENGTH+1];
@@ -407,32 +432,6 @@ int main(int argc, char **argv) {
 		
 	}
 	
-	/*
-	//Tested untar code: takes a tar + gzipped archive file and creates a new folder, then decompress all files in archive in their respective directories
-	clrscr();
-	printf(" --");
-	printf(" --");
-	
-	int argCount = 2;
-	
-	strcpy(&args[0][0], "-l");	//Arg0
-	strcpy(&args[1][0], "0:/demo-simple.tar.gz");	//Arg1
-	strcpy(&args[2][0], "d /");	//Arg2
-	
-	int i = 0;
-	for(i = 0; i < argCount; i++){
-		argvs[i] = (char*)&args[i][0];
-	}
-	
-	extern int untgzmain(int argc,char **argv);
-	
-	untgzmain(argCount, argvs);
-	
-	printf("untgzmain end");
-	while(1==1){
-		swiDelay(1);
-	}
-	*/
 	while(1) {
 		if(pendingPlay == true){
 			internalCodecType = playSoundStream(curChosenBrowseFile, _FileHandleVideo, _FileHandleAudio);
@@ -457,14 +456,6 @@ int main(int argc, char **argv) {
 			}
 			
 			while(keysDown() & KEY_X){
-				scanKeys();
-			}
-		}
-		
-		if (keysDown() & KEY_TOUCH){
-			u8 channel = SOUNDSTREAM_FREE_CHANNEL;
-			startSoundSample(11025, (u32*)&click_raw[0], click_raw_size, channel, 40, 63, 1);	//PCM16 sample
-			while(keysDown() & KEY_TOUCH){
 				scanKeys();
 			}
 		}
@@ -718,14 +709,17 @@ int main(int argc, char **argv) {
 			menuShow();
 		}
 		
-		// TSC Test.
-		struct XYTscPos touch;
-		XYReadScrPosUser(&touch);
+		int pen_delta[2];
+		bool isTSCActive = get_pen_delta( &pen_delta[0], &pen_delta[1] );
+		rotateY -= pen_delta[0];
+		rotateX -= pen_delta[1];
 		
-		if( (touch.touchYpx == 0) && (touch.touchXpx == 0) ){
-			printfCoords(0, 16, " No Press (X/Y):%d %d            -", touch.touchXpx, touch.touchYpx);
+		if( isTSCActive == false ){
+			printfCoords(0, 16, " No TSC Activity ----");
 		}
 		else{
+			
+			printfCoords(0, 16, "TSC Activity ----");
 			
 			glReset();
 	
@@ -748,33 +742,7 @@ int main(int argc, char **argv) {
 			//not a real gl function and will likely change
 			glPolyFmt(POLY_ALPHA(31) | POLY_CULL_NONE);
 			
-			//dead simple range check
-			int sliceScreenX = (256/2);
-			int sliceScreenY = (192/2);
-			//Top Left
-			if( ((sliceScreenX*1) >= touch.touchXpx) && ((sliceScreenY*1) > touch.touchYpx) ){
-				rotateX -= 0.8;
-				rotateY += 0.8;
-				printfCoords(0, 16, " Top Left(X/Y):%d %d ", touch.touchXpx, touch.touchYpx);
-			}
-			//Bottom Left
-			else if( ((sliceScreenX*1) >= touch.touchXpx) && ((sliceScreenY*1) < touch.touchYpx) ){
-				rotateX -= 0.8;
-				rotateY -= 0.8;
-				printfCoords(0, 16, " Bottom Left(X/Y):%d %d ", touch.touchXpx, touch.touchYpx);
-			}
-			//Top Right
-			else if( ((sliceScreenX*2) >= touch.touchXpx) && ((sliceScreenY*1) > touch.touchYpx) ){
-				rotateX += 0.8;
-				rotateY += 0.8;
-				printfCoords(0, 16, " Top Right(X/Y):%d %d ", touch.touchXpx, touch.touchYpx);
-			}
-			//Bottom Right
-			else if( ((sliceScreenX*2) >= touch.touchXpx) && ((sliceScreenY*1) < touch.touchYpx) ){
-				rotateX += 0.8;
-				rotateY -= 0.8;
-				printfCoords(0, 16, " Bottom Right(X/Y):%d %d ", touch.touchXpx, touch.touchYpx);
-			}
+			
 			
 			//draw the obj
 			glBegin(GL_TRIANGLE);
