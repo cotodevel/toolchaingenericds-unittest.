@@ -422,13 +422,13 @@ int main(int argc, char **argv) {
 	{
 		//set mode 0, enable BG0 and set it to 3D
 		SETDISPCNT_MAIN(MODE_0_3D);
-
+		
+		glInit();
 		//this should work the same as the normal gl call
 		glViewPort(0,0,255,191);
 		
 		glClearColor(0,0,0);
 		glClearDepth(0x7FFF);
-		
 		
 	}
 	
@@ -742,7 +742,7 @@ int main(int argc, char **argv) {
 			//not a real gl function and will likely change
 			glPolyFmt(POLY_ALPHA(31) | POLY_CULL_NONE);
 			
-			
+			//glShadeModel(GL_FLAT); //forces the fill color to be the first glColor3b call
 			
 			//draw the obj
 			glBegin(GL_TRIANGLE);
