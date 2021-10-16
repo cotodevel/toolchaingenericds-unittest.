@@ -423,7 +423,6 @@ int main(int argc, char **argv) {
 		//set mode 0, enable BG0 and set it to 3D
 		SETDISPCNT_MAIN(MODE_0_3D);
 		
-		glInit();
 		//this should work the same as the normal gl call
 		glViewPort(0,0,255,191);
 		
