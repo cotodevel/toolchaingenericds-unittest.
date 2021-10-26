@@ -742,6 +742,7 @@ int main(int argc, char **argv) {
 			//not a real gl function and will likely change
 			glPolyFmt(POLY_ALPHA(31) | POLY_CULL_NONE);
 			
+			//glShadeModel(GL_FLAT); //forces the fill color to be the first glColor3b call
 			
 			
 			//draw the obj
