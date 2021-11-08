@@ -57,21 +57,21 @@ static bool get_pen_delta( int *dx, int *dy ){
 	static int prev_pen[2] = { 0x7FFFFFFF, 0x7FFFFFFF };
 	
 	// TSC Test.
-	struct XYTscPos touch;
+	struct touchPosition touch;
 	XYReadScrPosUser(&touch);
 	
-	if( (touch.touchYpx == 0) && (touch.touchXpx == 0) ){
+	if( (touch.px == 0) && (touch.py == 0) ){
 		prev_pen[0] = prev_pen[1] = 0x7FFFFFFF;
 		*dx = *dy = 0;
 		return false;
 	}
 	else{
 		if( prev_pen[0] != 0x7FFFFFFF ){
-			*dx = (prev_pen[0] - touch.touchXpx);
-			*dy = (prev_pen[1] - touch.touchYpx);
+			*dx = (prev_pen[0] - touch.px);
+			*dy = (prev_pen[1] - touch.py);
 		}
-		prev_pen[0] = touch.touchXpx;
-		prev_pen[1] = touch.touchYpx;
+		prev_pen[0] = touch.px;
+		prev_pen[1] = touch.py;
 	}
 	return true;
 }
@@ -109,7 +109,6 @@ static inline void menuShow(){
 	printf("(Touch): Move Simple 3D Triangle. >%d", TGDSPrintfColor_Cyan);
 	
 	printf("Available heap memory: %d >%d", getMaxRam(), TGDSPrintfColor_Cyan);
-	printarm7DebugBuffer();
 }
 
 static bool ShowBrowserC(char * Path, char * outBuf, bool * pendingPlay, int * curFileIdx){	//MUST be same as the template one at "fileBrowse.h" but added some custom code
@@ -533,9 +532,9 @@ int main(int argc, char **argv) {
 		}
 		
 		if (keysDown() & KEY_UP){
-			struct XYTscPos touchPos;
+			struct touchPosition touchPos;
 			XYReadScrPosUser(&touchPos);
-			volumeUp(touchPos.touchXpx, touchPos.touchYpx);
+			volumeUp(touchPos.px, touchPos.py);
 			menuShow();
 			scanKeys();
 			while(keysDown() & KEY_UP){
@@ -545,9 +544,9 @@ int main(int argc, char **argv) {
 		}
 		
 		if (keysDown() & KEY_DOWN){
-			struct XYTscPos touchPos;
+			struct touchPosition touchPos;
 			XYReadScrPosUser(&touchPos);
-			volumeDown(touchPos.touchXpx, touchPos.touchYpx);
+			volumeDown(touchPos.px, touchPos.py);
 			menuShow();
 			scanKeys();
 			while(keysDown() & KEY_DOWN){
