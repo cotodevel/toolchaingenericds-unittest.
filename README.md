@@ -1,8 +1,8 @@
 ![ToolchainGenericDS](img/TGDS-Logo.png)
 
-NTR/TWL SDK: TGDS1.64
+NTR/TWL SDK: TGDS1.65
 
-master: Development branch. Use TGDS1.64Stable: branch for stable features.
+master: Development branch. Use TGDS1.65: branch for stable features.
 
 This is the ToolchainGenericDS-UnitTest project:
 
@@ -23,7 +23,7 @@ Project Specific description:
 
 /release folder has the latest binary precompiled for your convenience.
 
-Latest stable release: https://bitbucket.org/Coto88/ToolchainGenericDS-UnitTest/get/TGDS1.64Stable.zip
+Latest stable release: https://bitbucket.org/Coto88/ToolchainGenericDS-UnitTest/get/TGDS1.65.zip
 
 	
 Coto
