@@ -45,7 +45,7 @@ USA
 #include "libndsFIFO.h"
 #include "xenofunzip.h"
 #include "cartHeader.h"
-#include "videoGL.h"
+#include "VideoGL.h"
 #include "videoTGDS.h"
 #include "math.h"
 #include "posixFilehandleTest.h"
