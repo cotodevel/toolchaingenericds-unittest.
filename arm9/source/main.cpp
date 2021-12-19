@@ -50,6 +50,7 @@ USA
 #include "math.h"
 #include "posixFilehandleTest.h"
 #include "loader.h"
+#include "ndsDisplayListUtils.h"
 
 //true: pen touch
 //false: no tsc activity
@@ -340,8 +341,8 @@ static bool ShowBrowserC(char * Path, char * outBuf, bool * pendingPlay, int * c
 	return false;
 }
 
-#define ListSize (int)(4)
-static char * TestList[ListSize] = {"c_partial_mock", "c_regression", "cpp_tests", "posix_filehandle_tests"};
+#define ListSize (int)(5)
+static char * TestList[ListSize] = {"c_partial_mock", "c_regression", "cpp_tests", "posix_filehandle_tests", "ndsDisplayListUtils_tests"};
 
 static void returnMsgHandler(int bytes, void* user_data);
 
@@ -703,6 +704,23 @@ int main(int argc, char **argv) {
 						printf("testPosixFilehandle_fseek_rewind_method() ERROR >%d", TGDSPrintfColor_Red);
 					}
 					
+				}
+				break;
+				case (4):{ 
+					//ndsDisplayListUtils_tests: Nintendo DS reads embedded and compiled Cube.bin binary (https://bitbucket.org/Coto88/blender-nds-exporter/src) from filesystem
+					//which generates a NDS GX Display List object, then it gets compiled again into a binary DisplayList.
+					clrscr();
+					printf(" - - ");
+					printf(" - - ");
+					printf(" - - ");
+					
+					if(ndsDisplayListUtilsTestCaseARM9("0:/Cube_test.bin", "0:/Cube_compiled.bin") != true){
+						printf("ndsDisplayListUtilsTestCaseARM9 ERROR >%d", TGDSPrintfColor_Red);
+						printf("Cube_test.bin missing from SD root path >%d", TGDSPrintfColor_Red);
+					}
+					else{
+						printf("ndsDisplayListUtilsTestCaseARM9 OK >%d", TGDSPrintfColor_Green);
+					}
 				}
 				break;
 			}

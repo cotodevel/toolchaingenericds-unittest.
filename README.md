@@ -25,8 +25,12 @@ Project Specific description:
 
 Latest stable release: https://bitbucket.org/Coto88/ToolchainGenericDS-UnitTest/get/TGDS1.65.zip
 
-	
+Notes
+For running ndsDisplayListUtils tests copy Cube_test.bin from /release folder to SD root path, otherwise it'll fail.
+
 Coto
+
+
 
 Test Unit results in TGDS:
 
