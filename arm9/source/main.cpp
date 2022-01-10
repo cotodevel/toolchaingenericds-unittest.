@@ -50,6 +50,7 @@ USA
 #include "math.h"
 #include "posixFilehandleTest.h"
 #include "loader.h"
+#include "ndsDisplayListUtils.h"
 
 //true: pen touch
 //false: no tsc activity
@@ -340,8 +341,8 @@ static bool ShowBrowserC(char * Path, char * outBuf, bool * pendingPlay, int * c
 	return false;
 }
 
-#define ListSize (int)(4)
-static char * TestList[ListSize] = {"c_partial_mock", "c_regression", "cpp_tests", "posix_filehandle_tests"};
+#define ListSize (int)(6)
+static char * TestList[ListSize] = {"c_partial_mock", "c_regression", "cpp_tests", "posix_filehandle_tests", "ndsDisplayListUtils_tests", "argv_chainload_test"};
 
 static void returnMsgHandler(int bytes, void* user_data);
 
@@ -703,6 +704,97 @@ int main(int argc, char **argv) {
 						printf("testPosixFilehandle_fseek_rewind_method() ERROR >%d", TGDSPrintfColor_Red);
 					}
 					
+				}
+				break;
+				case (4):{ 
+					//ndsDisplayListUtils_tests: Nintendo DS reads embedded and compiled Cube.bin binary (https://bitbucket.org/Coto88/blender-nds-exporter/src) from filesystem
+					//which generates a NDS GX Display List object, then it gets compiled again into a binary DisplayList.
+					clrscr();
+					printf(" - - ");
+					printf(" - - ");
+					printf(" - - ");
+					
+					if(ndsDisplayListUtilsTestCaseARM9("0:/Cube_test.bin", "0:/Cube_compiled.bin") != true){
+						printf("ndsDisplayListUtilsTestCaseARM9 ERROR >%d", TGDSPrintfColor_Red);
+						printf("Cube_test.bin missing from SD root path >%d", TGDSPrintfColor_Red);
+					}
+					else{
+						printf("ndsDisplayListUtilsTestCaseARM9 OK >%d", TGDSPrintfColor_Green);
+					}
+				}
+				break;
+				
+				case(5):{
+					//argv_chainload_test: Chainloads through toolchaingenericds-multiboot into toolchaingenericds-argvtest while passing an argument to it.
+					//Case use: Booting TGDS homebrew through TGDS-Multiboot in external loaders, and passing arguments to said TGDS homebrew
+					
+					//Default case use
+					char * TGDS_MB = NULL;
+					char * TGDS_ARGVTEST = NULL;
+					char * TGDS_UNITTEST = NULL;
+					if(__dsimode == true){
+						TGDS_UNITTEST = "0:/ToolchainGenericDS-UnitTest.srl";
+						TGDS_MB = "0:/ToolchainGenericDS-multiboot.srl";
+						TGDS_ARGVTEST = "0:/ToolchainGenericDS-argvtest.srl";
+					}
+					else{
+						TGDS_UNITTEST = "0:/ToolchainGenericDS-UnitTest.nds";
+						TGDS_MB = "0:/ToolchainGenericDS-multiboot.nds";
+						TGDS_ARGVTEST = "0:/ToolchainGenericDS-argvtest.nds";
+					}
+					char thisArgv[4][MAX_TGDSFILENAME_LENGTH];
+					memset(thisArgv, 0, sizeof(thisArgv));
+					strcpy(&thisArgv[0][0], TGDS_UNITTEST);	//Arg0:	This Binary loaded
+					strcpy(&thisArgv[1][0], TGDS_MB);	//Arg1:	NDS Binary to chainload through TGDS-MB
+					strcpy(&thisArgv[2][0], TGDS_ARGVTEST);	//Arg2: NDS Binary loaded from TGDS-MB	
+					strcpy(&thisArgv[3][0], "thisArgumentShouldBeSeenInTGDS-argvtest.bin");					//Arg3: NDS Binary loaded from TGDS-MB's     ARG0
+					addARGV(4, (char*)&thisArgv);
+					strcpy(curChosenBrowseFile, TGDS_MB);
+					
+					
+					//Snemulds chainloading implementation
+					/*
+					char * TGDS_MB = NULL;
+					char * TGDS_ARGVTEST = NULL;
+					char * TGDS_UNITTEST = NULL;
+					if(__dsimode == true){
+						TGDS_UNITTEST = "0:/ToolchainGenericDS-UnitTest.srl";
+						TGDS_MB = "0:/ToolchainGenericDS-multiboot.srl";
+						TGDS_ARGVTEST = "0:/SNEmulDS.srl";
+					}
+					else{
+						TGDS_UNITTEST = "0:/ToolchainGenericDS-UnitTest.nds";
+						TGDS_MB = "0:/ToolchainGenericDS-multiboot.nds";
+						TGDS_ARGVTEST = "0:/SNEmulDS.nds";
+					}
+					
+					char thisArgv[4][MAX_TGDSFILENAME_LENGTH];
+					memset(thisArgv, 0, sizeof(thisArgv));
+					strcpy(&thisArgv[0][0], TGDS_UNITTEST);	//Arg0:	This Binary loaded
+					strcpy(&thisArgv[1][0], TGDS_MB);	//Arg1:	NDS Binary to chainload through TGDS-MB
+					strcpy(&thisArgv[2][0], TGDS_ARGVTEST);	//Arg2: NDS Binary loaded from TGDS-MB	
+					strcpy(&thisArgv[3][0], "0:/snes/filename.sfc");					//Arg3: NDS Binary loaded from TGDS-MB's     ARG0
+					addARGV(4, (char*)&thisArgv);
+					strcpy(curChosenBrowseFile, TGDS_MB);
+					*/
+					
+					if(TGDSMultibootRunNDSPayload(curChosenBrowseFile) == false){ //should never reach here, nor even return true. Should fail it returns false
+						printf("Invalid NDS/TWL Binary >%d", TGDSPrintfColor_Yellow);
+						printf("or you are in NTR mode trying to load a TWL binary. >%d", TGDSPrintfColor_Yellow);
+						printf("or you are missing the TGDS-multiboot payload in root path. >%d", TGDSPrintfColor_Yellow);
+						printf("Press (A) to continue. >%d", TGDSPrintfColor_Yellow);
+						while(1==1){
+							scanKeys();
+							if(keysDown()&KEY_A){
+								scanKeys();
+								while(keysDown() & KEY_A){
+									scanKeys();
+								}
+								break;
+							}
+						}
+						menuShow();
+					}
 				}
 				break;
 			}
