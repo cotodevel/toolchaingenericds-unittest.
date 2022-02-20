@@ -46,6 +46,7 @@ USA
 #include "xenofunzip.h"
 #include "cartHeader.h"
 #include "VideoGL.h"
+#include "VideoGLExt.h"
 #include "videoTGDS.h"
 #include "math.h"
 #include "posixFilehandleTest.h"
@@ -709,18 +710,90 @@ int main(int argc, char **argv) {
 				case (4):{ 
 					//ndsDisplayListUtils_tests: Nintendo DS reads embedded and compiled Cube.bin binary (https://bitbucket.org/Coto88/blender-nds-exporter/src) from filesystem
 					//which generates a NDS GX Display List object, then it gets compiled again into a binary DisplayList.
+					bool res = ndsDisplayListUtilsTestCaseARM9("0:/Cube_test.bin", "0:/Cube_compiled.bin");
 					clrscr();
 					printf(" - - ");
 					printf(" - - ");
 					printf(" - - ");
 					
-					if(ndsDisplayListUtilsTestCaseARM9("0:/Cube_test.bin", "0:/Cube_compiled.bin") != true){
+					if(res != true){
 						printf("ndsDisplayListUtilsTestCaseARM9 ERROR >%d", TGDSPrintfColor_Red);
 						printf("Cube_test.bin missing from SD root path >%d", TGDSPrintfColor_Red);
 					}
 					else{
 						printf("ndsDisplayListUtilsTestCaseARM9 OK >%d", TGDSPrintfColor_Green);
 					}
+					
+					//same from WIN32 main.c: https://bitbucket.org/Coto88/ndsdisplaylistutils/src/master/ndsDisplayListUtils/ndsDisplayListUtils.cpp 
+					//Unit Test #1: Tests OpenGL DisplayLists components functionality then emitting proper GX displaylists, unpacked format.
+					GLInitExt();
+					int list = glGenLists(10);
+					if(list){
+						glListBase(list);
+						bool ret = glIsList(list); //should return false (DL generated, but no displaylist-name was generated)
+						glNewList(list, GL_COMPILE);
+						ret = glIsList(list); //should return true (DL generated, and displaylist-name was generated)
+						if(ret == true){
+							for (int i = 0; i <10; i ++){ //Draw 10 cubes
+								glPushMatrix();
+								glRotate(36*i,0.0,0.0,1.0);
+								glTranslatef((float)10.0, (float)0.0, (float)0.0);
+								glPopMatrix(1);
+							}
+						}
+						glEndList();
+						
+						glListBase(list + 1);
+						glNewList (list + 1, GL_COMPILE);//Create a second display list and execute it
+						ret = glIsList(list + 1); //should return true (DL generated, and displaylist-name was generated)
+						if(ret == true){
+							for (int i = 0; i <20; i ++){ //Draw 20 triangles
+								glPushMatrix();
+								glRotate(18*i,0.0,0.0,1.0);
+								glTranslatef((float)15.0, (float)0.0, (float)0.0);
+								glPopMatrix(1);
+							}
+						}
+						glEndList();//The second display list is created
+					}
+					
+					u32 * CompiledDisplayListsBuffer = getInternalDisplayListBuffer(); //Lists called earlier are written to this buffer, using the unpacked GX command format.
+					//Unit Test #2:
+					//Takes an unpacked format display list, gets converted into packed format then exported as C Header file source code
+					char cwdPath[256];
+					char outPath[256];
+					strcpy(cwdPath, "0:/");
+					sprintf(outPath, "%s%s", cwdPath, "PackedDisplayList.h");
+					bool result = packAndExportSourceCodeFromRawUnpackedDisplayListFormat(outPath, CompiledDisplayListsBuffer);
+					if(result == true){
+						printf("OK:Unpacked DisplayList PACKED and exported as C source: >%d", TGDSPrintfColor_Green);
+						printf("%s", outPath);
+					}
+					else{
+						printf("Unpacked Display List generation failure >%d", TGDSPrintfColor_Red);
+					}
+					
+					//Unit Test #3: Using rawUnpackedToRawPackedDisplayListFormat() in target platform builds a packed Display List from an unpacked one IN MEMORY.
+					//Resembles the same behaviour as if C source file generated in Unit Test #2 was then built through ToolchainGenericDS and embedded into the project.
+					u32 Packed_DL_Binary[2048/4];
+					memset(Packed_DL_Binary, 0, sizeof(Packed_DL_Binary));
+					bool result2 = rawUnpackedToRawPackedDisplayListFormat(CompiledDisplayListsBuffer, (u32*)&Packed_DL_Binary[0]);
+					if(result2 == true){
+						//Save to file
+						sprintf(outPath, "%s%s", cwdPath, "PackedDisplayListCompiled.bin");
+						FILE * fout = fopen(outPath, "w+");
+						if(fout != NULL){
+							int packedSize = Packed_DL_Binary[0];
+							int written = fwrite((u8*)&Packed_DL_Binary[0], 1, packedSize, fout);
+							printf("OK:Unpacked DisplayList PACKED and exported as GX binary: >%d", TGDSPrintfColor_Green);
+							printf("Written: %d bytes", packedSize);
+							fclose(fout);
+						}
+					}
+					else{
+						printf("Unpacked Display List generation failure >%d", TGDSPrintfColor_Red);
+					}
+					
 				}
 				break;
 				
