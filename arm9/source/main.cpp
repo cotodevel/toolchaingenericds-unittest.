@@ -708,6 +708,7 @@ int main(int argc, char **argv) {
 				}
 				break;
 				case (4):{ 
+					//Unit Test: #0
 					//ndsDisplayListUtils_tests: Nintendo DS reads embedded and compiled Cube.bin binary (https://bitbucket.org/Coto88/blender-nds-exporter/src) from filesystem
 					//which generates a NDS GX Display List object, then it gets compiled again into a binary DisplayList.
 					bool res = ndsDisplayListUtilsTestCaseARM9("0:/Cube_test.bin", "0:/Cube_compiled.bin");
@@ -724,7 +725,6 @@ int main(int argc, char **argv) {
 						printf("ndsDisplayListUtilsTestCaseARM9 OK >%d", TGDSPrintfColor_Green);
 					}
 					
-					//same from WIN32 main.c: https://bitbucket.org/Coto88/ndsdisplaylistutils/src/master/ndsDisplayListUtils/ndsDisplayListUtils.cpp 
 					//Unit Test #1: Tests OpenGL DisplayLists components functionality then emitting proper GX displaylists, unpacked format.
 					GLInitExt();
 					int list = glGenLists(10);
@@ -793,6 +793,24 @@ int main(int argc, char **argv) {
 					else{
 						printf("Unpacked Display List generation failure >%d", TGDSPrintfColor_Red);
 					}
+					
+					//Unit Test #4: glCallLists test
+					GLuint index = glGenLists(10);  // create 10 display lists
+					GLubyte lists[10];              // allow maximum 10 lists to be rendered
+
+					//Compile 10 display lists
+					int DLCount = 0;
+					for(DLCount = 0; DLCount < 10; DLCount++){
+						glNewList(index + DLCount, GL_COMPILE);   // compile each one until the 10th
+						glEndList();
+					}
+					// draw odd placed display lists names only (1st, 3rd, 5th, 7th, 9th)
+					lists[0]=0; lists[1]=2; lists[2]=4; lists[3]=6; lists[4]=8;
+					glListBase(index);              // set base offset
+					glCallLists(10, GL_UNSIGNED_BYTE, lists); //only OpenGL Display List names set earlier will run! (bugged, cause segfaults)
+
+					//Unit Test #5: glDeleteLists test
+					glDeleteLists(index, 5); //remove 5 of them
 					
 				}
 				break;
