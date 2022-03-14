@@ -96,6 +96,25 @@ void closeSoundUser(){
 	//Stubbed. Gets called when closing an audiostream of a custom audio decoder
 }
 
+GLuint	texture[1];			// Storage For 1 Texture
+GLuint	box;				// Storage For The Box Display List
+GLuint	top;				// Storage For The Top Display List
+GLuint	xloop;				// Loop For X Axis
+GLuint	yloop;				// Loop For Y Axis
+
+GLfloat	xrot;				// Rotates Cube On The X Axis
+GLfloat	yrot;				// Rotates Cube On The Y Axis
+
+ GLfloat boxcol[5][3]=
+{
+	{1.0f,0.0f,0.0f},{1.0f,0.5f,0.0f},{1.0f,1.0f,0.0f},{0.0f,1.0f,0.0f},{0.0f,1.0f,1.0f}
+};
+
+GLfloat topcol[5][3]=
+{
+	{.5f,0.0f,0.0f},{0.5f,0.25f,0.0f},{0.5f,0.5f,0.0f},{0.0f,0.5f,0.0f},{0.0f,0.5f,0.5f}
+};
+
 static inline void menuShow(){
 	clrscr();
 	printf("     ");
@@ -436,13 +455,16 @@ int main(int argc, char **argv) {
 		SETDISPCNT_MAIN(MODE_0_3D);
 		
 		//this should work the same as the normal gl call
-		glViewPort(0,0,255,191);
+		glViewport(0,0,255,191);
 		
 		glClearColor(0,0,0);
 		glClearDepth(0x7FFF);
 		
 	}
 	
+	ReSizeGLScene(255, 191);
+	InitGL();
+
 	while(1) {
 		if(pendingPlay == true){
 			internalCodecType = playSoundStream(curChosenBrowseFile, _FileHandleVideo, _FileHandleAudio);
@@ -736,7 +758,7 @@ int main(int argc, char **argv) {
 						if(ret == true){
 							for (int i = 0; i <10; i ++){ //Draw 10 cubes
 								glPushMatrix();
-								glRotate(36*i,0.0,0.0,1.0);
+								glRotatef(36*i,0.0,0.0,1.0);
 								glTranslatef((float)10.0, (float)0.0, (float)0.0);
 								glPopMatrix(1);
 							}
@@ -749,7 +771,7 @@ int main(int argc, char **argv) {
 						if(ret == true){
 							for (int i = 0; i <20; i ++){ //Draw 20 triangles
 								glPushMatrix();
-								glRotate(18*i,0.0,0.0,1.0);
+								glRotatef(18*i,0.0,0.0,1.0);
 								glTranslatef((float)15.0, (float)0.0, (float)0.0);
 								glPopMatrix(1);
 							}
@@ -906,6 +928,7 @@ int main(int argc, char **argv) {
 			menuShow();
 		}
 		
+		/*
 		int pen_delta[2];
 		bool isTSCActive = get_pen_delta( &pen_delta[0], &pen_delta[1] );
 		rotateY -= pen_delta[0];
@@ -957,10 +980,131 @@ int main(int argc, char **argv) {
 			glPopMatrix(1);
 			glFlush();
 		}
-		
+		*/
+
+		DrawGLScene();
+		if (keysDown() & KEY_LEFT)
+		{
+			yrot-=0.2f;
+		}
+		if (keysDown() & KEY_RIGHT)
+		{
+			yrot+=0.2f;
+		}
+		if (keysDown() & KEY_UP)
+		{
+			xrot-=0.2f;
+		}
+		if (keysDown() & KEY_DOWN)
+		{
+			xrot+=0.2f;
+		}
+
 		handleARM9SVC();	/* Do not remove, handles TGDS services */
 		IRQVBlankWait();
 	}
 
 	return 0;
+}
+
+
+//GL Display Lists Unit Test: Cube Demo
+// Build Cube Display Lists
+GLvoid BuildLists(){
+	box=glGenLists(2);									// Generate 2 Different Lists
+	glNewList(box,GL_COMPILE);							// Start With The Box List
+		glBegin(GL_QUADS);
+			// Bottom Face
+			glNormal3f( 0.0f,-1.0f, 0.0f);
+			glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f, -1.0f, -1.0f);
+			glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f, -1.0f, -1.0f);
+			glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f,  1.0f);
+			glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f,  1.0f);
+			// Front Face
+			glNormal3f( 0.0f, 0.0f, 1.0f);
+			glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f, -1.0f,  1.0f);
+			glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f, -1.0f,  1.0f);
+			glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f,  1.0f,  1.0f);
+			glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f,  1.0f,  1.0f);
+			// Back Face
+			glNormal3f( 0.0f, 0.0f,-1.0f);
+			glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f, -1.0f);
+			glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f,  1.0f, -1.0f);
+			glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f,  1.0f, -1.0f);
+			glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f, -1.0f);
+			// Right face
+			glNormal3f( 1.0f, 0.0f, 0.0f);
+			glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f, -1.0f, -1.0f);
+			glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f,  1.0f, -1.0f);
+			glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f,  1.0f,  1.0f);
+			glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f,  1.0f);
+			// Left Face
+			glNormal3f(-1.0f, 0.0f, 0.0f);
+			glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f, -1.0f, -1.0f);
+			glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f,  1.0f);
+			glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f,  1.0f,  1.0f);
+			glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f,  1.0f, -1.0f);
+		glEnd();
+	glEndList();
+	top=box+1;											// Storage For "Top" Is "Box" Plus One
+	glNewList(top,GL_COMPILE);							// Now The "Top" Display List
+		glBegin(GL_QUADS);
+			// Top Face
+			glNormal3f( 0.0f, 1.0f, 0.0f);
+			glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f,  1.0f, -1.0f);
+			glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f,  1.0f,  1.0f);
+			glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f,  1.0f,  1.0f);
+			glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f,  1.0f, -1.0f);
+		glEnd();
+	glEndList();
+}
+
+GLvoid ReSizeGLScene(GLsizei width, GLsizei height)		// Resize And Initialize The GL Window
+{
+	if (height==0)										// Prevent A Divide By Zero By
+	{
+		height=1;										// Making Height Equal One
+	}
+
+	glViewport(0,0,width,height);						// Reset The Current Viewport
+
+	glMatrixMode(GL_PROJECTION);						// Select The Projection Matrix
+	glLoadIdentity();									// Reset The Projection Matrix
+
+	// Calculate The Aspect Ratio Of The Window
+	gluPerspective(45.0f,(GLfloat)width/(GLfloat)height,0.1f,100.0f);
+
+	glMatrixMode(GL_MODELVIEW);							// Select The Modelview Matrix
+	glLoadIdentity();									// Reset The Modelview Matrix
+}
+
+int InitGL()										// All Setup For OpenGL Goes Here
+{
+	BuildLists();										// Jump To The Code That Creates Our Display Lists
+
+	glEnable(GL_TEXTURE_2D);							// Enable Texture Mapping
+	glClearColor(0.0f, 0.0f, 0.0f);				// Black Background
+	glClearDepth(1.0f);									// Depth Buffer Setup
+	return true;										// Initialization Went OK
+}
+
+int DrawGLScene()									// Here's Where We Do All The Drawing
+{
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	// Clear The Screen And The Depth Buffer
+
+	for (yloop=1;yloop<6;yloop++)
+	{
+		for (xloop=0;xloop<yloop;xloop++)
+		{
+			glLoadIdentity();							// Reset The View
+			glTranslatef(1.4f+(float(xloop)*2.8f)-(float(yloop)*1.4f),((6.0f-float(yloop))*2.4f)-7.0f,-20.0f);
+			glRotatef(45.0f-(2.0f*yloop)+xrot,1.0f,0.0f,0.0f);
+			glRotatef(45.0f+yrot,0.0f,1.0f,0.0f);
+			glColor3fv(boxcol[yloop-1]);
+			glCallList(box);
+			glColor3fv(topcol[yloop-1]);
+			glCallList(top);
+		}
+	}
+	return true;										// Keep Going
 }

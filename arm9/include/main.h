@@ -25,7 +25,8 @@ USA
 #include "dsregs.h"
 #include "fatfslayerTGDS.h"
 #include "utilsTGDS.h"
-#include "utilsTGDS.h"
+#include "VideoGL.h"
+#include "VideoGLExt.h"
 
 #endif
 
@@ -43,6 +44,22 @@ extern int internalCodecType;//Internal because WAV raw decompressed buffers are
 
 extern char args[8][MAX_TGDSFILENAME_LENGTH];
 extern char *argvs[8];
+
+extern GLuint	texture[1];			// Storage For 1 Texture
+extern GLuint	box;				// Storage For The Box Display List
+extern GLuint	top;				// Storage For The Top Display List
+extern GLuint	xloop;				// Loop For X Axis
+extern GLuint	yloop;				// Loop For Y Axis
+
+extern GLfloat	xrot;				// Rotates Cube On The X Axis
+extern GLfloat	yrot;				// Rotates Cube On The Y Axis
+
+extern GLfloat boxcol[5][3];
+extern GLfloat topcol[5][3];
+extern GLvoid BuildLists();
+extern GLvoid ReSizeGLScene(GLsizei width, GLsizei height);
+extern int InitGL();
+extern int DrawGLScene();
 
 #ifdef __cplusplus
 }
