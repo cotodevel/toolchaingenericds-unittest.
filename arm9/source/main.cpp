@@ -46,7 +46,6 @@ USA
 #include "xenofunzip.h"
 #include "cartHeader.h"
 #include "VideoGL.h"
-#include "VideoGLExt.h"
 #include "videoTGDS.h"
 #include "math.h"
 #include "posixFilehandleTest.h"
