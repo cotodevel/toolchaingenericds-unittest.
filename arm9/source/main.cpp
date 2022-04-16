@@ -841,55 +841,27 @@ int main(int argc, char **argv) {
 					//Case use: Booting TGDS homebrew through TGDS-Multiboot in external loaders, and passing arguments to said TGDS homebrew
 					
 					//Default case use
-					char * TGDS_MB = NULL;
-					char * TGDS_ARGVTEST = NULL;
-					char * TGDS_UNITTEST = NULL;
+					char * TGDS_CHAINLOADEXEC = NULL;
+					char * TGDS_CHAINLOADTARGET = NULL;
+					char * TGDS_CHAINLOADCALLER = NULL;
 					if(__dsimode == true){
-						TGDS_UNITTEST = "0:/ToolchainGenericDS-UnitTest.srl";
-						TGDS_MB = "0:/ToolchainGenericDS-multiboot.srl";
-						TGDS_ARGVTEST = "0:/ToolchainGenericDS-argvtest.srl";
+						TGDS_CHAINLOADCALLER = "0:/ToolchainGenericDS-UnitTest.srl";
+						TGDS_CHAINLOADEXEC = "0:/ToolchainGenericDS-multiboot.srl";
+						TGDS_CHAINLOADTARGET = "0:/SNEmulDS.srl"; //ToolchainGenericDS-argvtest.srl
 					}
 					else{
-						TGDS_UNITTEST = "0:/ToolchainGenericDS-UnitTest.nds";
-						TGDS_MB = "0:/ToolchainGenericDS-multiboot.nds";
-						TGDS_ARGVTEST = "0:/ToolchainGenericDS-argvtest.nds";
+						TGDS_CHAINLOADCALLER = "0:/ToolchainGenericDS-UnitTest.nds";
+						TGDS_CHAINLOADEXEC = "0:/ToolchainGenericDS-multiboot.nds";
+						TGDS_CHAINLOADTARGET = "0:/SNEmulDS.nds"; //ToolchainGenericDS-argvtest.nds
 					}
 					char thisArgv[4][MAX_TGDSFILENAME_LENGTH];
 					memset(thisArgv, 0, sizeof(thisArgv));
-					strcpy(&thisArgv[0][0], TGDS_UNITTEST);	//Arg0:	This Binary loaded
-					strcpy(&thisArgv[1][0], TGDS_MB);	//Arg1:	NDS Binary to chainload through TGDS-MB
-					strcpy(&thisArgv[2][0], TGDS_ARGVTEST);	//Arg2: NDS Binary loaded from TGDS-MB	
-					strcpy(&thisArgv[3][0], "thisArgumentShouldBeSeenInTGDS-argvtest.bin");					//Arg3: NDS Binary loaded from TGDS-MB's     ARG0
+					strcpy(&thisArgv[0][0], TGDS_CHAINLOADCALLER);	//Arg0:	This Binary loaded
+					strcpy(&thisArgv[1][0], TGDS_CHAINLOADEXEC);	//Arg1:	NDS Binary to chainload through TGDS-MB
+					strcpy(&thisArgv[2][0], TGDS_CHAINLOADTARGET);	//Arg2: NDS Binary loaded from TGDS-MB	
+					strcpy(&thisArgv[3][0], "0:/snes/smw.smc");					//Arg3: NDS Binary loaded from TGDS-MB's     ARG0
 					addARGV(4, (char*)&thisArgv);
-					strcpy(curChosenBrowseFile, TGDS_MB);
-					
-					
-					//Snemulds chainloading implementation
-					/*
-					char * TGDS_MB = NULL;
-					char * TGDS_ARGVTEST = NULL;
-					char * TGDS_UNITTEST = NULL;
-					if(__dsimode == true){
-						TGDS_UNITTEST = "0:/ToolchainGenericDS-UnitTest.srl";
-						TGDS_MB = "0:/ToolchainGenericDS-multiboot.srl";
-						TGDS_ARGVTEST = "0:/SNEmulDS.srl";
-					}
-					else{
-						TGDS_UNITTEST = "0:/ToolchainGenericDS-UnitTest.nds";
-						TGDS_MB = "0:/ToolchainGenericDS-multiboot.nds";
-						TGDS_ARGVTEST = "0:/SNEmulDS.nds";
-					}
-					
-					char thisArgv[4][MAX_TGDSFILENAME_LENGTH];
-					memset(thisArgv, 0, sizeof(thisArgv));
-					strcpy(&thisArgv[0][0], TGDS_UNITTEST);	//Arg0:	This Binary loaded
-					strcpy(&thisArgv[1][0], TGDS_MB);	//Arg1:	NDS Binary to chainload through TGDS-MB
-					strcpy(&thisArgv[2][0], TGDS_ARGVTEST);	//Arg2: NDS Binary loaded from TGDS-MB	
-					strcpy(&thisArgv[3][0], "0:/snes/filename.sfc");					//Arg3: NDS Binary loaded from TGDS-MB's     ARG0
-					addARGV(4, (char*)&thisArgv);
-					strcpy(curChosenBrowseFile, TGDS_MB);
-					*/
-					
+					strcpy(curChosenBrowseFile, TGDS_CHAINLOADEXEC);
 					if(TGDSMultibootRunNDSPayload(curChosenBrowseFile) == false){ //should never reach here, nor even return true. Should fail it returns false
 						printf("Invalid NDS/TWL Binary >%d", TGDSPrintfColor_Yellow);
 						printf("or you are in NTR mode trying to load a TWL binary. >%d", TGDSPrintfColor_Yellow);
