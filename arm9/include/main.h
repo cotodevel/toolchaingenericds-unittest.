@@ -36,7 +36,6 @@ extern "C" {
 
 extern int main(int argc, char ** argv);
 //TGDS Dir API: Directory Iterator(s)
-extern struct FileClassList * menuIteratorfileClassListCtx;			//Menu Directory Iterator
 extern char curChosenBrowseFile[256+1];
 extern char globalPath[MAX_TGDSFILENAME_LENGTH+1];
 extern int internalCodecType;//Internal because WAV raw decompressed buffers are used if Uncompressed WAV or ADPCM
@@ -59,6 +58,9 @@ extern GLvoid BuildLists();
 extern GLvoid ReSizeGLScene(GLsizei width, GLsizei height);
 extern int InitGL();
 extern int DrawGLScene();
+
+extern bool dumpARM7ARM9Binary(char * filename);
+extern void initMIC();
 
 #ifdef __cplusplus
 }

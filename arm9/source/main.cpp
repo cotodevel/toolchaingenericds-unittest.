@@ -19,13 +19,19 @@ USA
 */
 
 #include "main.h"
+#include "dsregs.h"
+#include "dsregs_asm.h"	   
 #include "typedefsTGDS.h"
 #include "dsregs.h"
 #include "dswnifi_lib.h"
 #include "keypadTGDS.h"
 #include "TGDSLogoLZSSCompressed.h"
 #include "fileBrowse.h"	//generic template functions from TGDS: maintain 1 source, whose changes are globally accepted by all TGDS Projects.
+#include "gui_console_connector.h"				  
+#include "lzss9.h"
 #include "biosTGDS.h"
+#include "busTGDS.h"
+#include "clockTGDS.h"
 #include "ipcfifoTGDSUser.h"
 #include "dldi.h"
 #include "global_settings.h"
@@ -43,7 +49,6 @@ USA
 #include "c_regression.h"
 #include "cpptests.h"
 #include "libndsFIFO.h"
-#include "xenofunzip.h"
 #include "cartHeader.h"
 #include "VideoGL.h"
 #include "videoTGDS.h"
@@ -51,6 +56,12 @@ USA
 #include "posixFilehandleTest.h"
 #include "loader.h"
 #include "ndsDisplayListUtils.h"
+#include "microphoneShared.h"
+
+//C++ part
+using namespace std;
+#include <fstream>
+#include <cmath>
 
 //true: pen touch
 //false: no tsc activity
@@ -77,7 +88,31 @@ static bool get_pen_delta( int *dx, int *dy ){
 	return true;
 }
 
-struct FileClassList * menuIteratorfileClassListCtx = NULL;
+
+static inline void waitByLoopAButton(){
+	scanKeys();
+	while(1==1){
+		if(keysDown()&KEY_A){
+			break;
+		}
+		scanKeys();
+		IRQWait(1, IRQ_VBLANK);
+	}
+}
+
+static inline string ToStr( char c ) {
+   return string( 1, c );
+}
+
+//example: std::string OverrideFileExtension("filename.txt", ".zip")
+static inline std::string OverrideFileExtension(const std::string& FileName, const std::string& newExt)
+{
+	std::string newString = string(FileName);
+    if(newString.find_last_of(".") != std::string::npos)
+        return newString.substr(0,newString.find_last_of('.'))+newExt;
+    return "";
+}
+
 char curChosenBrowseFile[256+1];
 char globalPath[MAX_TGDSFILENAME_LENGTH+1];
 static int curFileIndex = 0;
@@ -89,6 +124,11 @@ static struct fd * _FileHandleAudio = NULL;
 
 bool stopSoundStreamUser(){
 	return stopSoundStream(_FileHandleVideo, _FileHandleAudio, &internalCodecType);
+}
+
+std::string getDldiDefaultPath(){
+	std::string dldiOut = string((char*)getfatfsPath( (sint8*)string(dldi_tryingInterface() + string(".dldi")).c_str() ));
+	return dldiOut;
 }
 
 void closeSoundUser(){
@@ -114,34 +154,115 @@ GLfloat topcol[5][3]=
 	{.5f,0.0f,0.0f},{0.5f,0.25f,0.0f},{0.5f,0.5f,0.0f},{0.0f,0.5f,0.0f},{0.0f,0.5f,0.5f}
 };
 
+bool dumpARM7ARM9Binary(char * filename){
+	if(isNTROrTWLBinary(filename) == notTWLOrNTRBinary){
+		return false;
+	}
+	FILE * fh = fopen(filename, "r");
+	if(fh != NULL){
+		int headerSize = sizeof(struct sDSCARTHEADER);
+		u8 * NDSHeader = (u8 *)malloc(headerSize*sizeof(u8));
+		if (fread(NDSHeader, 1, headerSize, fh) != headerSize){
+			printf("header read error");
+			free(NDSHeader);
+			fclose(fh);
+			return false;
+		}
+		struct sDSCARTHEADER * NDSHdr = (struct sDSCARTHEADER *)NDSHeader;
+		//ARM7
+		int arm7BootCodeSize = NDSHdr->arm7size;
+		u32 arm7BootCodeOffsetInFile = NDSHdr->arm7romoffset;
+		u32 arm7entryaddress = NDSHdr->arm7entryaddress;
+		fseek(fh, arm7BootCodeOffsetInFile, SEEK_SET);
+		u8* alloc = (u8*)malloc(arm7BootCodeSize);
+		fread(alloc, 1, arm7BootCodeSize, fh);
+		FILE * fout = fopen("0:/arm7.bin", "w+");
+		if(fout != NULL){
+			fwrite(alloc, 1, arm7BootCodeSize, fout);
+			fclose(fout);
+		}
+		free(alloc);
+		//ARM9
+		int arm9BootCodeSize = NDSHdr->arm9size;
+		u32 arm9BootCodeOffsetInFile = NDSHdr->arm9romoffset;
+		u32 arm9entryaddress = NDSHdr->arm9entryaddress;
+		fseek(fh, arm9BootCodeOffsetInFile, SEEK_SET);
+		alloc = (u8*)malloc(arm9BootCodeSize);
+		fread(alloc, 1, arm9BootCodeSize, fh);
+		fout = fopen("0:/arm9.bin", "w+");
+		if(fout != NULL){
+			fwrite(alloc, 1, arm9BootCodeSize, fout);
+			fclose(fout);
+		}
+		free(alloc);
+		free(NDSHeader);
+		fclose(fh);
+		
+		//layout-filename.txt
+		char fname[256+1];
+		sprintf(fname, "%s%s%s", "0:/", "layout-NDSBinary", ".txt");
+		char tmpBuf[256+1];
+		strcpy(tmpBuf, fname);
+		strcpy(fname, tmpBuf);
+		fh = fopen(fname, "w+");
+		if(fh != NULL){
+			char buff[256+1];
+			sprintf(buff, "%s Sections: %s",filename, "\n");
+			fputs(buff, fh);
+			sprintf(buff, "[arm7.bin]:%s%x -- %s -> %d bytes [@ EntryAddress: 0x%x] %s", "arm7BootCodeOffsetInFile: 0x", arm7BootCodeOffsetInFile, "arm7BootCodeSize: ", arm7BootCodeSize, arm7entryaddress, "\n");
+			fputs(buff, fh);
+			sprintf(buff, "[arm9.bin]:%s%x -- %s -> %d bytes [@ EntryAddress: 0x%x] %s", "arm9BootCodeOffsetInFile: 0x", arm9BootCodeOffsetInFile, "arm9BootCodeSize: ", arm9BootCodeSize, arm9entryaddress, "\n");
+			fputs(buff, fh);
+			
+			printf("Exported: ARM7.bin, ARM9.bin and %s", fname);
+			fclose(fh);
+		}
+		else{
+			printf("couldn't create file.");
+		}
+		return true;
+	}
+	return false;
+}
+
 static inline void menuShow(){
 	clrscr();
 	printf("     ");
 	printf("     ");
-	printf("ToolchainGenericDS-CPPUnitTest: ");
-	printf("(Select): This menu. ");
-	printf("(Start): FileBrowser : (A) Play WAV/IMA-ADPCM (Intel) strm ");
-	printf("(D-PAD:UP/DOWN): Volume + / - ");
-	printf("(D-PAD:LEFT): GDB Debugging. >%d", TGDSPrintfColor_Green);
-	printf("(D-PAD:RIGHT): Demo Sound. >%d", TGDSPrintfColor_Yellow);
-	printf("(Y): Run CPPUTest. >%d", TGDSPrintfColor_Yellow);
-	printf("(X): Test libnds FIFO subsystem. >%d", TGDSPrintfColor_Yellow);
-	printf("(Touch): Move Simple 3D Triangle. >%d", TGDSPrintfColor_Cyan);
-	
+	char micRec[256];
+	if(isRecording == true){
+		sprintf(micRec, "Microphone Recording! >%d", TGDSPrintfColor_Red);
+	}
+	else{
+		strcpy(micRec, "Microphone Idle! ");
+	}
+	printf("ToolchainGenericDS-UnitTest: [%s]", micRec);
+	printf("(Select): Test libnds FIFO impl. ");
+	printf("(Start): FileBrowser : (A) Various File Operations");
+	printf("D-PAD (Hold) UP: Record from Microphone. Release: Stop recording. ");	
+	printf("(D-PAD:LEFT): Debug/Dump ARM7 Memory");
+	printf("(D-PAD:RIGHT): dump dldi file to %s", getDldiDefaultPath().c_str());
+	printf("(B): Generate root file list into 0:/filelist.txt");
+	printf("(D-PAD:DOWN): Read File: 0:/filelist.txt");
+	printf("(Y): Run SDK tests. >%d", TGDSPrintfColor_Yellow);
+	printf("(X): Report TGDS Payload NTR/TWL Mode. >%d", TGDSPrintfColor_Yellow);
+	printf("(Touch): Move 3D Triangles. >%d", TGDSPrintfColor_Cyan);
+	struct sIPCSharedTGDS * TGDSIPC = TGDSIPCStartAddress;
+	int nicknameLenUTF16 = (int)(TGDSIPC->DSFWSETTINGSInst.nickname_length_chars[0] | TGDSIPC->DSFWSETTINGSInst.nickname_length_chars[1] << 8);	//01Ah  2   Nickname length in characters    (0..10)
+	printf("Console Name: %s - Length(UTF-16):%d", (char*)&TGDSIPC->nickname_schar8[0], nicknameLenUTF16);
 	printf("Available heap memory: %d >%d", getMaxRam(), TGDSPrintfColor_Cyan);
 }
 
-static bool ShowBrowserC(char * Path, char * outBuf, bool * pendingPlay, int * curFileIdx){	//MUST be same as the template one at "fileBrowse.h" but added some custom code
+bool ShowBrowserC(char * Path, char * outBuf, bool askForTools){
 	scanKeys();
 	while((keysDown() & KEY_START) || (keysDown() & KEY_A) || (keysDown() & KEY_B)){
 		scanKeys();
 		IRQWait(0, IRQ_VBLANK);
 	}
-	
-	*pendingPlay = false;
-	
+
 	//Create TGDS Dir API context
-	cleanFileList(menuIteratorfileClassListCtx);
+	struct FileClassList * fileClassListCtx = initFileList();
+	cleanFileList(fileClassListCtx);
 	
 	//Use TGDS Dir API context
 	int pressed = 0;
@@ -151,24 +272,22 @@ static bool ShowBrowserC(char * Path, char * outBuf, bool * pendingPlay, int * c
 		strcpy(filStub.fd_namefullPath, "");
 		filStub.isIterable = true;
 		filStub.d_ino = -1;
-		filStub.parentFileClassList = menuIteratorfileClassListCtx;
+		filStub.curIndexInsideFileClassList = 0;
+		filStub.parentFileClassList = fileClassListCtx;
 	}
 	char curPath[MAX_TGDSFILENAME_LENGTH+1];
 	strcpy(curPath, Path);
-	
-	if(pushEntryToFileClassList(true, filStub.fd_namefullPath, filStub.type, -1, menuIteratorfileClassListCtx) != NULL){
-		
-	}
-	
+	setFileClassObj(0, (struct FileClass *)&filStub, fileClassListCtx);
+ 
 	int j = 1;
 	int startFromIndex = 1;
-	*curFileIdx = startFromIndex;
+							  
 	struct FileClass * fileClassInst = NULL;
-	fileClassInst = FAT_FindFirstFile(curPath, menuIteratorfileClassListCtx, startFromIndex);
+	fileClassInst = FAT_FindFirstFile(curPath, fileClassListCtx, startFromIndex);
 	
 	//Sort list alphabetically
 	bool ignoreFirstFileClass = true;
-	sortFileClassListAsc(menuIteratorfileClassListCtx, (char**)ARM7_PAYLOAD, ignoreFirstFileClass);
+	sortFileClassListAsc(fileClassListCtx, (char**)ARM7_PAYLOAD, ignoreFirstFileClass);
 	
 	//actual file lister
 	clrscr();
@@ -185,7 +304,7 @@ static bool ShowBrowserC(char * Path, char * outBuf, bool * pendingPlay, int * c
 	int itemRead=1;
 	
 	while(1){
-		int fileClassListSize = getCurrentDirectoryCount(menuIteratorfileClassListCtx) + 1;	//+1 the stub
+		int fileClassListSize = getCurrentDirectoryCount(fileClassListCtx) + 1;	//+1 the stub
 		int itemsToLoad = (fileClassListSize - curjoffset);
 		
 		//check if remaining items are enough
@@ -194,11 +313,11 @@ static bool ShowBrowserC(char * Path, char * outBuf, bool * pendingPlay, int * c
 		}
 		
 		while(itemRead < itemsToLoad ){		
-			if(getFileClassFromList(itemRead+curjoffset, menuIteratorfileClassListCtx)->type == FT_DIR){
-				printfCoords(0, itemRead, "--- %s >%d",getFileClassFromList(itemRead+curjoffset, menuIteratorfileClassListCtx)->fd_namefullPath, TGDSPrintfColor_Yellow);
+			if(getFileClassFromList(itemRead+curjoffset, fileClassListCtx)->type == FT_DIR){
+				printfCoords(0, itemRead, "--- %s >%d",getFileClassFromList(itemRead+curjoffset, fileClassListCtx)->fd_namefullPath, TGDSPrintfColor_Yellow);
 			}
 			else{
-				printfCoords(0, itemRead, "--- %s",getFileClassFromList(itemRead+curjoffset, menuIteratorfileClassListCtx)->fd_namefullPath);
+				printfCoords(0, itemRead, "--- %s",getFileClassFromList(itemRead+curjoffset, fileClassListCtx)->fd_namefullPath);
 			}
 			itemRead++;
 		}
@@ -299,15 +418,15 @@ static bool ShowBrowserC(char * Path, char * outBuf, bool * pendingPlay, int * c
 		}
 		
 		//reload DIR (forward)
-		else if( (pressed&KEY_A) && (getFileClassFromList(j+curjoffset, menuIteratorfileClassListCtx)->type == FT_DIR) ){
-			struct FileClass * fileClassChosen = getFileClassFromList(j+curjoffset, menuIteratorfileClassListCtx);
+		else if( (pressed&KEY_A) && (getFileClassFromList(j+curjoffset, fileClassListCtx)->type == FT_DIR) ){
+			struct FileClass * fileClassChosen = getFileClassFromList(j+curjoffset, fileClassListCtx);
 			newDir = fileClassChosen->fd_namefullPath;
 			reloadDirA = true;
 			break;
 		}
 		
 		//file chosen
-		else if( (pressed&KEY_A) && (getFileClassFromList(j+curjoffset, menuIteratorfileClassListCtx)->type == FT_FILE) ){
+		else if( (pressed&KEY_A) && (getFileClassFromList(j+curjoffset, fileClassListCtx)->type == FT_FILE) ){
 			break;
 		}
 		
@@ -327,37 +446,105 @@ static bool ShowBrowserC(char * Path, char * outBuf, bool * pendingPlay, int * c
 	
 	//enter a dir
 	if(reloadDirA == true){
-		//Free TGDS Dir API context
-		//freeFileList(menuIteratorfileClassListCtx);	//can't because we keep the menuIteratorfileClassListCtx handle across folders
-		
+		//Enter to dir in Directory Iterator CWD
 		enterDir((char*)newDir, Path);
+		
+		//Free TGDS Dir API context
+		freeFileList(fileClassListCtx);
 		return true;
 	}
 	
 	//leave a dir
 	if(reloadDirB == true){
-		//Free TGDS Dir API context
-		//freeFileList(menuIteratorfileClassListCtx);	//can't because we keep the menuIteratorfileClassListCtx handle across folders
-		
-		//rewind to preceding dir in TGDSCurrentWorkingDirectory
+		//Rewind to preceding dir in Directory Iterator CWD
 		leaveDir(Path);
+		
+		//Free TGDS Dir API context
+		freeFileList(fileClassListCtx);
 		return true;
 	}
 	
-	strcpy((char*)outBuf, getFileClassFromList(j+curjoffset, menuIteratorfileClassListCtx)->fd_namefullPath);
+	strcpy((char*)outBuf, getFileClassFromList(j+curjoffset, fileClassListCtx)->fd_namefullPath);
 	clrscr();
 	printf("                                   ");
-	if(getFileClassFromList(j+curjoffset, menuIteratorfileClassListCtx)->type == FT_DIR){
+	if(getFileClassFromList(j+curjoffset, fileClassListCtx)->type == FT_DIR){
 		//printf("you chose Dir:%s",outBuf);
 	}
-	else{
-		*curFileIdx = (j+curjoffset);
-		*pendingPlay = true;
+	else if(getFileClassFromList(j+curjoffset, fileClassListCtx)->type == FT_FILE){
+		if(askForTools == true){
+			string filenameChosen = string(getFileClassFromList(j+curjoffset, fileClassListCtx)->fd_namefullPath);
+			string targetLZSSFilenameOut = OverrideFileExtension(filenameChosen, ".lzss");
+			string targetLZSSFilenameIn = OverrideFileExtension(filenameChosen, ".bin");
+			printf("Press X to LZSS compress");
+			printf("%s into %s",filenameChosen.c_str(), targetLZSSFilenameOut.c_str());
+			printf("");
+			printf("Press Y to LZSS decompress");
+			printf("%s into %s",filenameChosen.c_str(), targetLZSSFilenameIn.c_str());
+			printf("");
+			printf("Press DPAD RIGHT to dump ARM7/ARM9 sections in 0:/");
+			printf("");
+			printf("Press B to exit");
+			
+			scanKeys();
+			while(1==1){
+				if(keysDown()&KEY_X){
+					//compress
+					printf("Compressing please wait...");
+					LZS_Encode(filenameChosen.c_str(), targetLZSSFilenameOut.c_str());
+					printf("Press A to exit");
+					waitByLoopAButton();
+					break;
+				}
+				else if(keysDown()&KEY_Y){
+					//decompress
+					printf("Decompressing please wait...");
+					LZS_Decode(filenameChosen.c_str(), targetLZSSFilenameIn.c_str());
+					printf("Press A to exit");
+					waitByLoopAButton();
+					break;
+				}
+				else if(keysDown()&KEY_RIGHT){
+					//Extract ARM7 and ARM9 bin
+					printf("Generating...");
+					if(dumpARM7ARM9Binary((char*)filenameChosen.c_str()) == true){
+						printf("Done.");
+					}
+					else{
+						printf("Invalid NDS/TWL Binary >%d", TGDSPrintfColor_Yellow);
+					}
+					
+					printf("Press (A) to continue. >%d", TGDSPrintfColor_Yellow);
+					while(1==1){
+						scanKeys();
+						if(keysDown()&KEY_A){
+							scanKeys();
+							while(keysDown() & KEY_A){
+								scanKeys();
+							}
+							break;
+						}
+					}
+					menuShow();					
+					break;
+				}
+				else if(keysDown()&KEY_B){
+					break;
+				}
+				scanKeys();
+				IRQWait(0, IRQ_VBLANK);
+			}
+		}
 	}
 	
 	//Free TGDS Dir API context
-	//freeFileList(menuIteratorfileClassListCtx);
+	freeFileList(fileClassListCtx);
 	return false;
+}
+
+void initMIC(){
+	char * recFile = "0:/RECNDS.WAV";
+	startRecording(recFile);
+	endRecording();
 }
 
 #define ListSize (int)(6)
@@ -370,8 +557,7 @@ static void returnMsgHandler(int bytes, void* user_data)
 {
 	returnMsg msg;
 	fifoGetDatamsg(FIFO_RETURN, bytes, (u8*) &msg);
-	printf("ARM7 reply size: %d returnMsgHandler: ", bytes);
-	printf("%s >%d", (char*)&msg.data[0], TGDSPrintfColor_Green);
+	printf("ARM7: %s [Msg Size: %d] >%d", (char*)&msg.data[0], bytes, TGDSPrintfColor_Green);
 }
 
 static void InstallSoundSys()
@@ -390,8 +576,7 @@ __attribute__((optimize("O0")))
 #if (!defined(__GNUC__) && defined(__clang__))
 __attribute__ ((optnone))
 #endif
-int main(int argc, char **argv) {
-	
+int main(int argc, char **argv) {	
 	/*			TGDS 1.6 Standard ARM9 Init code start	*/
 	bool isTGDSCustomConsole = false;	//set default console or custom console: default console
 	GUI_init(isTGDSCustomConsole);
@@ -432,10 +617,6 @@ int main(int argc, char **argv) {
 	
 	InstallSoundSys();
 	
-	//Init TGDS FS Directory Iterator Context(s). Mandatory to init them like this!! Otherwise several functions won't work correctly.
-	menuIteratorfileClassListCtx = initFileList();
-	cleanFileList(menuIteratorfileClassListCtx);
-	
 	memset(globalPath, 0, sizeof(globalPath));
 	strcpy(globalPath,"/");
 	
@@ -453,8 +634,8 @@ int main(int argc, char **argv) {
 		
 		glClearColor(0,0,0);
 		glClearDepth(0x7FFF);
-		
 	}
+	initMIC();
 	
 	ReSizeGLScene(255, 191);
 	InitGL();
@@ -470,9 +651,8 @@ int main(int argc, char **argv) {
 		}
 		
 		scanKeys();
-		
-		if (keysDown() & KEY_X){
-			
+		if (keysDown() & KEY_SELECT){
+			menuShow();
 			returnMsg msg;
 			sprintf((char*)&msg.data[0], "%s", "Test message using libnds FIFO API!");
 			if(fifoSendDatamsg(FIFO_SNDSYS, sizeof(msg), (u8*) &msg) == true){
@@ -482,26 +662,14 @@ int main(int argc, char **argv) {
 				//printf("X: Channel: %d Message FAIL! ", FIFO_RETURN);
 			}
 			
-			while(keysDown() & KEY_X){
-				scanKeys();
-			}
-		}
-		
-		if (keysDown() & KEY_SELECT){
-			menuShow();
 			while(keysDown() & KEY_SELECT){
 				scanKeys();
 			}
 		}
 		
 		if (keysDown() & KEY_START){
-			while( ShowBrowserC((char *)globalPath, (char *)&curChosenBrowseFile[0], &pendingPlay, &curFileIndex) == true ){	//as long you keep using directories ShowBrowser will be true
+			while( ShowBrowserC((char *)globalPath, (char *)&curChosenBrowseFile[0], true) == true ){	//as long you keep using directories ShowBrowser will be true
 				
-			}
-			
-			if(getCurrentDirectoryCount(menuIteratorfileClassListCtx) > 0){
-				strcpy(curChosenBrowseFile, (const char *)getFileClassFromList(curFileIndex, menuIteratorfileClassListCtx)->fd_namefullPath);
-				pendingPlay = true;
 			}
 			
 			scanKeys();
@@ -511,91 +679,155 @@ int main(int argc, char **argv) {
 			menuShow();
 		}
 		
-		if (keysDown() & KEY_L){
-			struct sIPCSharedTGDS * TGDSIPC = TGDSIPCStartAddress;
-			if(getCurrentDirectoryCount(menuIteratorfileClassListCtx) > 0){
-				if(curFileIndex > 1){	//+1 stub FileClass
-					curFileIndex--;
-				}
-				struct FileClass * fileClassInst = getFileClassFromList(curFileIndex, menuIteratorfileClassListCtx);
-				if(fileClassInst->type == FT_FILE){
-					strcpy(curChosenBrowseFile, (const char *)fileClassInst->fd_namefullPath);
-					pendingPlay = true;
-				}
-				else{
-					strcpy(curChosenBrowseFile, (const char *)fileClassInst->fd_namefullPath);
-				}
-			}
-			
-			scanKeys();
-			while(keysDown() & KEY_L){
-				scanKeys();
-				IRQWait(0, IRQ_VBLANK);
-			}
-			menuShow();
-		}
-		
-		if (keysDown() & KEY_R){	
-			//Play next song from current folder
-			int lstSize = getCurrentDirectoryCount(menuIteratorfileClassListCtx);
-			if(lstSize > 0){	
-				if(curFileIndex < lstSize){
-					curFileIndex++;
-				}
-				struct FileClass * fileClassInst = getFileClassFromList(curFileIndex, menuIteratorfileClassListCtx);
-				if(fileClassInst->type == FT_FILE){
-					strcpy(curChosenBrowseFile, (const char *)fileClassInst->fd_namefullPath);
-					pendingPlay = true;
-				}
-				else{
-					strcpy(curChosenBrowseFile, (const char *)fileClassInst->fd_namefullPath);
-				}
-			}
-			
-			scanKeys();
-			while(keysDown() & KEY_R){
-				scanKeys();
-				IRQWait(0, IRQ_VBLANK);
-			}
-			menuShow();
-		}
-		
 		if (keysDown() & KEY_UP){
-			struct touchPosition touchPos;
-			XYReadScrPosUser(&touchPos);
-			volumeUp(touchPos.px, touchPos.py);
+			char * recFile = "0:/RECNDS.WAV";
+			startRecording(recFile);
 			menuShow();
 			scanKeys();
-			while(keysDown() & KEY_UP){
+			while(keysHeld() & KEY_UP){
 				scanKeys();
-				IRQWait(0, IRQ_VBLANK);
 			}
+			endRecording();
+			menuShow();
+			printf("Recording saved to: %s ", recFile);
 		}
 		
 		if (keysDown() & KEY_DOWN){
-			struct touchPosition touchPos;
-			XYReadScrPosUser(&touchPos);
-			volumeDown(touchPos.px, touchPos.py);
-			menuShow();
-			scanKeys();
+			
+			char InFile[80];  // input file name
+			char ch;
+			
+			ifstream InStream;
+			std::string someString;
+			
+			ofstream OutStream;
+			sprintf(InFile,"%s%s",getfatfsPath((char*)""),"filelist.txt");
+			
+			// Open file for input
+			// in.open(fin); also works
+			InStream.open(InFile, ios::in);
+
+			// ensure file is opened successfully
+			if(!InStream)
+			{
+				printf("Error open file %s",InFile);
+			}
+			else{
+				// Read in each character until eof character is read.
+				// Output it to screen.
+				int somePosition = 0;
+				while (!InStream.eof()) {
+					//Read each character.
+					InStream.get(ch);
+					someString.insert(somePosition, ToStr(ch));
+					somePosition++;
+				}
+				InStream.close();
+				printf("Read OK:%s",someString.c_str());
+			}
+			
 			while(keysDown() & KEY_DOWN){
 				scanKeys();
-				IRQWait(0, IRQ_VBLANK);
+				IRQWait(1, IRQ_VBLANK);
 			}
 		}
 		
 		if (keysDown() & KEY_B){
-			scanKeys();
-			stopSoundStreamUser();
-			menuShow();
+			string fOut = string(getfatfsPath((char *)"filelist.txt"));
+			std::ofstream outfile;
+			outfile.open(fOut.c_str());
+			char curPath[MAX_TGDSFILENAME_LENGTH+1];
+			strcpy(curPath, "/");
+			
+			//Create TGDS Dir API context
+			struct FileClassList * fileClassListCtx = initFileList();
+			cleanFileList(fileClassListCtx);
+			
+			//Use TGDS Dir API context
+			int startFromIndex = 0;
+			struct FileClass * fileClassInst = NULL;
+			fileClassInst = FAT_FindFirstFile(curPath, fileClassListCtx, startFromIndex);			
+			while(fileClassInst != NULL){
+				std::string fnameOut = std::string("");
+				//directory?
+				if(fileClassInst->type == FT_DIR){
+					fnameOut = string(fileClassInst->fd_namefullPath) + string("/[dir]");
+				}
+				//file?
+				else if(fileClassInst->type == FT_FILE){
+					fnameOut = string(fileClassInst->fd_namefullPath);
+				}
+				outfile << fnameOut << endl;
+				
+				//more file/dir objects?
+				fileClassInst = FAT_FindNextFile(curPath, fileClassListCtx);
+			}
+			
+			//Free TGDS Dir API context
+			freeFileList(fileClassListCtx);
+			
+			outfile.close();
+			printf("filelist %s saved.", fOut.c_str());
 			while(keysDown() & KEY_B){
 				scanKeys();
 			}
 		}
 		
+		
+		if (keysDown() & KEY_LEFT){
+			u32 ARM7SrcAddress = 0x03800000;
+			int ARM7ReadSize = 64*1024;
+			u8* ARM7Mem = (u8*)malloc(ARM7ReadSize);
+			//ReadMemoryExt((u32*)ARM7SrcAddress, (u32 *)ARM7Mem, ARM7ReadSize); //todo: add new method
+			
+			clrscr();
+			printf("--");
+			printf("Press Y to dump ARM7@0x%x: %d bytes",ARM7SrcAddress, ARM7ReadSize);
+			printf("to 0:/ARM7.bin. ");
+			printf("-");
+			printf("Press B to exit");
+			
+			scanKeys();
+			while(1==1){
+				if(keysDown()&KEY_Y){
+					char * fnameOut = "0:/arm7.bin";
+					FILE * fout = fopen(fnameOut, "w+");
+					if(fout != NULL){
+						fwrite(ARM7Mem, 1, ARM7ReadSize, fout);
+						fclose(fout);
+					}
+					clrscr();
+					printf("--");
+					printf("--");
+					printf("Saved: %s. Press A to exit", fnameOut);
+					waitByLoopAButton();
+					menuShow();
+					break;
+				}
+				else if(keysDown()&KEY_B){
+					break;
+				}
+				scanKeys();
+				IRQWait(0, IRQ_VBLANK);
+			}
+			free(ARM7Mem);
+			scanKeys();
+			while(keysDown() & KEY_LEFT){
+				scanKeys();
+			}
+		}
+		
 		if (keysDown() & KEY_RIGHT){
-			strcpy(curChosenBrowseFile, (const char *)"0:/rain.ima");
-			pendingPlay = true;
+			DLDI_INTERFACE* dldiInterface = (struct DLDI_INTERFACE*)&_io_dldi_stub;
+			uint8 * dldiStart = (uint8 *)dldiInterface;
+			int dldiSize = (int)pow((double)2, (double)dldiInterface->driverSize);	// this is easily 2 << (dldiInterface->driverSize - 1), but I use pow() to test the math library in the ARM9 core
+			FILE * fh = fopen(getDldiDefaultPath().c_str(),"w+");
+			if(fh){
+				fwrite(dldiStart, 1, dldiSize, fh);
+				fclose(fh);
+				printf("%s exported.",getDldiDefaultPath().c_str());
+				printf("%d bytes",dldiSize);
+			}
 			
 			scanKeys();
 			while(keysDown() & KEY_RIGHT){
@@ -604,7 +836,6 @@ int main(int argc, char **argv) {
 		}
 		
 		if (keysDown() & KEY_Y){
-			
 			//Choose the test
 			clrscr();
 			
@@ -894,6 +1125,16 @@ int main(int argc, char **argv) {
 			menuShow();
 		}
 		
+		if (keysDown() & KEY_X){
+			reportTGDSPayloadMode((u32)&bufModeARM7[0]);
+			scanKeys();
+			while(keysHeld() & KEY_X){
+				scanKeys();
+			}
+			menuShow();
+		}
+		
+		
 		/*
 		int pen_delta[2];
 		bool isTSCActive = get_pen_delta( &pen_delta[0], &pen_delta[1] );
@@ -949,27 +1190,29 @@ int main(int argc, char **argv) {
 		*/
 
 		DrawGLScene();
+		
+		/*
 		if (keysDown() & KEY_LEFT)
 		{
 			yrot-=0.2f;
-		}
-		if (keysDown() & KEY_RIGHT)
-		{
-			yrot+=0.2f;
 		}
 		if (keysDown() & KEY_UP)
 		{
 			xrot-=0.2f;
 		}
+		if (keysDown() & KEY_RIGHT)
+		{
+			yrot+=0.2f;
+		}
 		if (keysDown() & KEY_DOWN)
 		{
 			xrot+=0.2f;
 		}
-
+		*/
+		
 		handleARM9SVC();	/* Do not remove, handles TGDS services */
 		IRQVBlankWait();
 	}
-
 	return 0;
 }
 
