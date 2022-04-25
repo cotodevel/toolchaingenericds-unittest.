@@ -292,7 +292,7 @@ extern void test_mock_5();
 extern void test_mock_6();
 extern void test_mock_7();
 
-extern int doCppTests(int argc, char *argv[]);
+extern int doCppTests();
 
 #ifdef __cplusplus
 }

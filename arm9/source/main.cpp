@@ -19,19 +19,12 @@ USA
 */
 
 #include "main.h"
-#include "dsregs.h"
-#include "dsregs_asm.h"	   
 #include "typedefsTGDS.h"
 #include "dsregs.h"
 #include "dswnifi_lib.h"
 #include "keypadTGDS.h"
 #include "TGDSLogoLZSSCompressed.h"
-#include "fileBrowse.h"	//generic template functions from TGDS: maintain 1 source, whose changes are globally accepted by all TGDS Projects.
-#include "gui_console_connector.h"				  
-#include "lzss9.h"
 #include "biosTGDS.h"
-#include "busTGDS.h"
-#include "clockTGDS.h"
 #include "ipcfifoTGDSUser.h"
 #include "dldi.h"
 #include "global_settings.h"
@@ -44,6 +37,12 @@ USA
 #include "utilsTGDS.h"
 #include "click_raw.h"
 #include "ima_adpcm.h"
+#include "linkerTGDS.h"
+#include "utils.twl.h"
+#include "gui_console_connector.h"				  
+#include "lzss9.h"
+#include "busTGDS.h"
+#include "clockTGDS.h"
 #include "opmock.h"
 #include "c_partial_mock_test.h"
 #include "c_regression.h"
@@ -58,14 +57,16 @@ USA
 #include "ndsDisplayListUtils.h"
 #include "microphoneShared.h"
 
-//C++ part
-using namespace std;
-#include <fstream>
-#include <cmath>
+// Includes
+#include "WoopsiTemplate.h"
+#include "dmaTGDS.h"
+#include "nds_cp15_misc.h"
+#include "fatfslayerTGDS.h"
+#include <stdio.h>
 
 //true: pen touch
 //false: no tsc activity
-static bool get_pen_delta( int *dx, int *dy ){
+bool get_pen_delta( int *dx, int *dy ){
 	static int prev_pen[2] = { 0x7FFFFFFF, 0x7FFFFFFF };
 	
 	// TSC Test.
@@ -86,53 +87,6 @@ static bool get_pen_delta( int *dx, int *dy ){
 		prev_pen[1] = touch.py;
 	}
 	return true;
-}
-
-
-static inline void waitByLoopAButton(){
-	scanKeys();
-	while(1==1){
-		if(keysDown()&KEY_A){
-			break;
-		}
-		scanKeys();
-		IRQWait(1, IRQ_VBLANK);
-	}
-}
-
-static inline string ToStr( char c ) {
-   return string( 1, c );
-}
-
-//example: std::string OverrideFileExtension("filename.txt", ".zip")
-static inline std::string OverrideFileExtension(const std::string& FileName, const std::string& newExt)
-{
-	std::string newString = string(FileName);
-    if(newString.find_last_of(".") != std::string::npos)
-        return newString.substr(0,newString.find_last_of('.'))+newExt;
-    return "";
-}
-
-char curChosenBrowseFile[256+1];
-char globalPath[MAX_TGDSFILENAME_LENGTH+1];
-static int curFileIndex = 0;
-static bool pendingPlay = false;
-
-int internalCodecType = SRC_NONE;//Internal because WAV raw decompressed buffers are used if Uncompressed WAV or ADPCM
-static struct fd * _FileHandleVideo = NULL; 
-static struct fd * _FileHandleAudio = NULL;
-
-bool stopSoundStreamUser(){
-	return stopSoundStream(_FileHandleVideo, _FileHandleAudio, &internalCodecType);
-}
-
-std::string getDldiDefaultPath(){
-	std::string dldiOut = string((char*)getfatfsPath( (sint8*)string(dldi_tryingInterface() + string(".dldi")).c_str() ));
-	return dldiOut;
-}
-
-void closeSoundUser(){
-	//Stubbed. Gets called when closing an audiostream of a custom audio decoder
 }
 
 GLuint	texture[1];			// Storage For 1 Texture
@@ -161,10 +115,9 @@ bool dumpARM7ARM9Binary(char * filename){
 	FILE * fh = fopen(filename, "r");
 	if(fh != NULL){
 		int headerSize = sizeof(struct sDSCARTHEADER);
-		u8 * NDSHeader = (u8 *)malloc(headerSize*sizeof(u8));
+		u8 * NDSHeader = (u8 *)TGDSARM9Malloc(headerSize*sizeof(u8));
 		if (fread(NDSHeader, 1, headerSize, fh) != headerSize){
-			printf("header read error");
-			free(NDSHeader);
+			TGDSARM9Free(NDSHeader);
 			fclose(fh);
 			return false;
 		}
@@ -174,28 +127,28 @@ bool dumpARM7ARM9Binary(char * filename){
 		u32 arm7BootCodeOffsetInFile = NDSHdr->arm7romoffset;
 		u32 arm7entryaddress = NDSHdr->arm7entryaddress;
 		fseek(fh, arm7BootCodeOffsetInFile, SEEK_SET);
-		u8* alloc = (u8*)malloc(arm7BootCodeSize);
+		u8* alloc = (u8*)TGDSARM9Malloc(arm7BootCodeSize);
 		fread(alloc, 1, arm7BootCodeSize, fh);
 		FILE * fout = fopen("0:/arm7.bin", "w+");
 		if(fout != NULL){
 			fwrite(alloc, 1, arm7BootCodeSize, fout);
 			fclose(fout);
 		}
-		free(alloc);
+		TGDSARM9Free(alloc);
 		//ARM9
 		int arm9BootCodeSize = NDSHdr->arm9size;
 		u32 arm9BootCodeOffsetInFile = NDSHdr->arm9romoffset;
 		u32 arm9entryaddress = NDSHdr->arm9entryaddress;
 		fseek(fh, arm9BootCodeOffsetInFile, SEEK_SET);
-		alloc = (u8*)malloc(arm9BootCodeSize);
+		alloc = (u8*)TGDSARM9Malloc(arm9BootCodeSize);
 		fread(alloc, 1, arm9BootCodeSize, fh);
 		fout = fopen("0:/arm9.bin", "w+");
 		if(fout != NULL){
 			fwrite(alloc, 1, arm9BootCodeSize, fout);
 			fclose(fout);
 		}
-		free(alloc);
-		free(NDSHeader);
+		TGDSARM9Free(alloc);
+		TGDSARM9Free(NDSHeader);
 		fclose(fh);
 		
 		//layout-filename.txt
@@ -213,333 +166,15 @@ bool dumpARM7ARM9Binary(char * filename){
 			fputs(buff, fh);
 			sprintf(buff, "[arm9.bin]:%s%x -- %s -> %d bytes [@ EntryAddress: 0x%x] %s", "arm9BootCodeOffsetInFile: 0x", arm9BootCodeOffsetInFile, "arm9BootCodeSize: ", arm9BootCodeSize, arm9entryaddress, "\n");
 			fputs(buff, fh);
-			
-			printf("Exported: ARM7.bin, ARM9.bin and %s", fname);
 			fclose(fh);
 		}
-		else{
-			printf("couldn't create file.");
-		}
 		return true;
 	}
 	return false;
 }
 
-static inline void menuShow(){
-	clrscr();
-	printf("     ");
-	printf("     ");
-	char micRec[256];
-	if(isRecording == true){
-		sprintf(micRec, "Microphone Recording! >%d", TGDSPrintfColor_Red);
-	}
-	else{
-		strcpy(micRec, "Microphone Idle! ");
-	}
-	printf("ToolchainGenericDS-UnitTest: [%s]", micRec);
-	printf("(Select): Test libnds FIFO impl. ");
-	printf("(Start): FileBrowser : (A) Various File Operations");
-	printf("D-PAD (Hold) UP: Record from Microphone. Release: Stop recording. ");	
-	printf("(D-PAD:LEFT): Debug/Dump ARM7 Memory");
-	printf("(D-PAD:RIGHT): dump dldi file to %s", getDldiDefaultPath().c_str());
-	printf("(B): Generate root file list into 0:/filelist.txt");
-	printf("(D-PAD:DOWN): Read File: 0:/filelist.txt");
-	printf("(Y): Run SDK tests. >%d", TGDSPrintfColor_Yellow);
-	printf("(X): Report TGDS Payload NTR/TWL Mode. >%d", TGDSPrintfColor_Yellow);
-	printf("(Touch): Move 3D Triangles. >%d", TGDSPrintfColor_Cyan);
-	struct sIPCSharedTGDS * TGDSIPC = TGDSIPCStartAddress;
-	int nicknameLenUTF16 = (int)(TGDSIPC->DSFWSETTINGSInst.nickname_length_chars[0] | TGDSIPC->DSFWSETTINGSInst.nickname_length_chars[1] << 8);	//01Ah  2   Nickname length in characters    (0..10)
-	printf("Console Name: %s - Length(UTF-16):%d", (char*)&TGDSIPC->nickname_schar8[0], nicknameLenUTF16);
-	printf("Available heap memory: %d >%d", getMaxRam(), TGDSPrintfColor_Cyan);
-}
-
-bool ShowBrowserC(char * Path, char * outBuf, bool askForTools){
-	scanKeys();
-	while((keysDown() & KEY_START) || (keysDown() & KEY_A) || (keysDown() & KEY_B)){
-		scanKeys();
-		IRQWait(0, IRQ_VBLANK);
-	}
-
-	//Create TGDS Dir API context
-	struct FileClassList * fileClassListCtx = initFileList();
-	cleanFileList(fileClassListCtx);
-	
-	//Use TGDS Dir API context
-	int pressed = 0;
-	struct FileClass filStub;
-	{
-		filStub.type = FT_FILE;
-		strcpy(filStub.fd_namefullPath, "");
-		filStub.isIterable = true;
-		filStub.d_ino = -1;
-		filStub.curIndexInsideFileClassList = 0;
-		filStub.parentFileClassList = fileClassListCtx;
-	}
-	char curPath[MAX_TGDSFILENAME_LENGTH+1];
-	strcpy(curPath, Path);
-	setFileClassObj(0, (struct FileClass *)&filStub, fileClassListCtx);
- 
-	int j = 1;
-	int startFromIndex = 1;
-							  
-	struct FileClass * fileClassInst = NULL;
-	fileClassInst = FAT_FindFirstFile(curPath, fileClassListCtx, startFromIndex);
-	
-	//Sort list alphabetically
-	bool ignoreFirstFileClass = true;
-	sortFileClassListAsc(fileClassListCtx, (char**)ARM7_PAYLOAD, ignoreFirstFileClass);
-	
-	//actual file lister
-	clrscr();
-	
-	j = 1;
-	pressed = 0 ;
-	int lastVal = 0;
-	bool reloadDirA = false;
-	bool reloadDirB = false;
-	char * newDir = NULL;
-	
-	#define itemsShown (int)(15)
-	int curjoffset = 0;
-	int itemRead=1;
-	
-	while(1){
-		int fileClassListSize = getCurrentDirectoryCount(fileClassListCtx) + 1;	//+1 the stub
-		int itemsToLoad = (fileClassListSize - curjoffset);
-		
-		//check if remaining items are enough
-		if(itemsToLoad > itemsShown){
-			itemsToLoad = itemsShown;
-		}
-		
-		while(itemRead < itemsToLoad ){		
-			if(getFileClassFromList(itemRead+curjoffset, fileClassListCtx)->type == FT_DIR){
-				printfCoords(0, itemRead, "--- %s >%d",getFileClassFromList(itemRead+curjoffset, fileClassListCtx)->fd_namefullPath, TGDSPrintfColor_Yellow);
-			}
-			else{
-				printfCoords(0, itemRead, "--- %s",getFileClassFromList(itemRead+curjoffset, fileClassListCtx)->fd_namefullPath);
-			}
-			itemRead++;
-		}
-		
-		scanKeys();
-		pressed = keysDown();
-		if (pressed&KEY_DOWN && (j < (itemsToLoad - 1) ) ){
-			j++;
-			while(pressed&KEY_DOWN){
-				scanKeys();
-				pressed = keysDown();
-				IRQWait(0, IRQ_VBLANK);
-			}
-		}
-		
-		//downwards: means we need to reload new screen
-		else if(pressed&KEY_DOWN && (j >= (itemsToLoad - 1) ) && ((fileClassListSize - curjoffset - itemRead) > 0) ){
-			
-			//list only the remaining items
-			clrscr();
-			
-			curjoffset = (curjoffset + itemsToLoad - 1);
-			itemRead = 1;
-			j = 1;
-			
-			scanKeys();
-			pressed = keysDown();
-			while(pressed&KEY_DOWN){
-				scanKeys();
-				pressed = keysDown();
-				IRQWait(0, IRQ_VBLANK);
-			}
-		}
-		
-		//LEFT, reload new screen
-		else if(pressed&KEY_LEFT && ((curjoffset - itemsToLoad) > 0) ){
-			
-			//list only the remaining items
-			clrscr();
-			
-			curjoffset = (curjoffset - itemsToLoad - 1);
-			itemRead = 1;
-			j = 1;
-			
-			scanKeys();
-			pressed = keysDown();
-			while(pressed&KEY_LEFT){
-				scanKeys();
-				pressed = keysDown();
-				IRQWait(0, IRQ_VBLANK);
-			}
-		}
-		
-		//RIGHT, reload new screen
-		else if(pressed&KEY_RIGHT && ((fileClassListSize - curjoffset - itemsToLoad) > 0) ){
-			
-			//list only the remaining items
-			clrscr();
-			
-			curjoffset = (curjoffset + itemsToLoad - 1);
-			itemRead = 1;
-			j = 1;
-			
-			scanKeys();
-			pressed = keysDown();
-			while(pressed&KEY_RIGHT){
-				scanKeys();
-				pressed = keysDown();
-				IRQWait(0, IRQ_VBLANK);
-			}
-		}
-		
-		else if (pressed&KEY_UP && (j > 1)) {
-			j--;
-			while(pressed&KEY_UP){
-				scanKeys();
-				pressed = keysDown();
-				IRQWait(0, IRQ_VBLANK);
-			}
-		}
-		
-		//upwards: means we need to reload new screen
-		else if (pressed&KEY_UP && (j <= 1) && (curjoffset > 0) ) {
-			//list only the remaining items
-			clrscr();
-			
-			curjoffset--;
-			itemRead = 1;
-			j = 1;
-			
-			scanKeys();
-			pressed = keysDown();
-			while(pressed&KEY_UP){
-				scanKeys();
-				pressed = keysDown();
-				IRQWait(0, IRQ_VBLANK);
-			}
-		}
-		
-		//reload DIR (forward)
-		else if( (pressed&KEY_A) && (getFileClassFromList(j+curjoffset, fileClassListCtx)->type == FT_DIR) ){
-			struct FileClass * fileClassChosen = getFileClassFromList(j+curjoffset, fileClassListCtx);
-			newDir = fileClassChosen->fd_namefullPath;
-			reloadDirA = true;
-			break;
-		}
-		
-		//file chosen
-		else if( (pressed&KEY_A) && (getFileClassFromList(j+curjoffset, fileClassListCtx)->type == FT_FILE) ){
-			break;
-		}
-		
-		//reload DIR (backward)
-		else if(pressed&KEY_B){
-			reloadDirB = true;
-			break;
-		}
-		
-		// Show cursor
-		printfCoords(0, j, "*");
-		if(lastVal != j){
-			printfCoords(0, lastVal, " ");	//clean old
-		}
-		lastVal = j;
-	}
-	
-	//enter a dir
-	if(reloadDirA == true){
-		//Enter to dir in Directory Iterator CWD
-		enterDir((char*)newDir, Path);
-		
-		//Free TGDS Dir API context
-		freeFileList(fileClassListCtx);
-		return true;
-	}
-	
-	//leave a dir
-	if(reloadDirB == true){
-		//Rewind to preceding dir in Directory Iterator CWD
-		leaveDir(Path);
-		
-		//Free TGDS Dir API context
-		freeFileList(fileClassListCtx);
-		return true;
-	}
-	
-	strcpy((char*)outBuf, getFileClassFromList(j+curjoffset, fileClassListCtx)->fd_namefullPath);
-	clrscr();
-	printf("                                   ");
-	if(getFileClassFromList(j+curjoffset, fileClassListCtx)->type == FT_DIR){
-		//printf("you chose Dir:%s",outBuf);
-	}
-	else if(getFileClassFromList(j+curjoffset, fileClassListCtx)->type == FT_FILE){
-		if(askForTools == true){
-			string filenameChosen = string(getFileClassFromList(j+curjoffset, fileClassListCtx)->fd_namefullPath);
-			string targetLZSSFilenameOut = OverrideFileExtension(filenameChosen, ".lzss");
-			string targetLZSSFilenameIn = OverrideFileExtension(filenameChosen, ".bin");
-			printf("Press X to LZSS compress");
-			printf("%s into %s",filenameChosen.c_str(), targetLZSSFilenameOut.c_str());
-			printf("");
-			printf("Press Y to LZSS decompress");
-			printf("%s into %s",filenameChosen.c_str(), targetLZSSFilenameIn.c_str());
-			printf("");
-			printf("Press DPAD RIGHT to dump ARM7/ARM9 sections in 0:/");
-			printf("");
-			printf("Press B to exit");
-			
-			scanKeys();
-			while(1==1){
-				if(keysDown()&KEY_X){
-					//compress
-					printf("Compressing please wait...");
-					LZS_Encode(filenameChosen.c_str(), targetLZSSFilenameOut.c_str());
-					printf("Press A to exit");
-					waitByLoopAButton();
-					break;
-				}
-				else if(keysDown()&KEY_Y){
-					//decompress
-					printf("Decompressing please wait...");
-					LZS_Decode(filenameChosen.c_str(), targetLZSSFilenameIn.c_str());
-					printf("Press A to exit");
-					waitByLoopAButton();
-					break;
-				}
-				else if(keysDown()&KEY_RIGHT){
-					//Extract ARM7 and ARM9 bin
-					printf("Generating...");
-					if(dumpARM7ARM9Binary((char*)filenameChosen.c_str()) == true){
-						printf("Done.");
-					}
-					else{
-						printf("Invalid NDS/TWL Binary >%d", TGDSPrintfColor_Yellow);
-					}
-					
-					printf("Press (A) to continue. >%d", TGDSPrintfColor_Yellow);
-					while(1==1){
-						scanKeys();
-						if(keysDown()&KEY_A){
-							scanKeys();
-							while(keysDown() & KEY_A){
-								scanKeys();
-							}
-							break;
-						}
-					}
-					menuShow();					
-					break;
-				}
-				else if(keysDown()&KEY_B){
-					break;
-				}
-				scanKeys();
-				IRQWait(0, IRQ_VBLANK);
-			}
-		}
-	}
-	
-	//Free TGDS Dir API context
-	freeFileList(fileClassListCtx);
-	return false;
-}
+#define ListSize (int)(6)
+static char * TestList[ListSize] = {"c_partial_mock", "c_regression", "cpp_tests", "posix_filehandle_tests", "ndsDisplayListUtils_tests", "argv_chainload_test"};
 
 void initMIC(){
 	char * recFile = "0:/RECNDS.WAV";
@@ -547,23 +182,66 @@ void initMIC(){
 	endRecording();
 }
 
-#define ListSize (int)(6)
-static char * TestList[ListSize] = {"c_partial_mock", "c_regression", "cpp_tests", "posix_filehandle_tests", "ndsDisplayListUtils_tests", "argv_chainload_test"};
+//TGDS Soundstreaming API
+int internalCodecType = SRC_NONE; //Returns current sound stream format: WAV, ADPCM or NONE
+struct fd * _FileHandleVideo = NULL; 
+struct fd * _FileHandleAudio = NULL;
 
-static void returnMsgHandler(int bytes, void* user_data);
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
 
-//Should ARM7 reply a message, then, it'll be received to test the Libnds FIFO implementation.
-static void returnMsgHandler(int bytes, void* user_data)
-{
-	returnMsg msg;
-	fifoGetDatamsg(FIFO_RETURN, bytes, (u8*) &msg);
-	printf("ARM7: %s [Msg Size: %d] >%d", (char*)&msg.data[0], bytes, TGDSPrintfColor_Green);
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
+bool stopSoundStreamUser() {
+	return stopSoundStream(_FileHandleVideo, _FileHandleAudio, &internalCodecType);
 }
 
-static void InstallSoundSys()
-{
-	/* Install FIFO */
-	fifoSetDatamsgHandler(FIFO_RETURN, returnMsgHandler, 0);
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
+
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
+void closeSoundUser() {
+	//Stubbed. Gets called when closing an audiostream of a custom audio decoder
+}
+
+static inline void menuShow(){
+	clrscr();
+	printf("     ");
+	printf("     ");
+	printf("%s ", TGDSPROJECTNAME);
+	printf("(Select): This menu. ");
+	printf("(Start): FileBrowser : (A) Play WAV/IMA-ADPCM (Intel) strm ");
+	printf("(D-PAD:UP/DOWN): Volume + / - ");
+	printf("(D-PAD:LEFT): GDB Debugging. >%d", TGDSPrintfColor_Green);
+	printf("(D-PAD:RIGHT): Demo Sound. >%d", TGDSPrintfColor_Yellow);
+	printf("(B): Stop WAV/IMA-ADPCM file. ");
+	printf("Current Volume: %d", (int)getVolume());
+	if(internalCodecType == SRC_WAVADPCM){
+		printf("ADPCM Play: >%d", TGDSPrintfColor_Red);
+	}
+	else if(internalCodecType == SRC_WAV){	
+		printf("WAVPCM Play: >%d", TGDSPrintfColor_Green);
+	}
+	else{
+		printf("Player Inactive");
+	}
+	printf("Available heap memory: %d >%d", getMaxRam(), TGDSPrintfColor_Cyan);
+}
+
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
+
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
+int do_sound(char *sound){
+	return 0;
 }
 
 char args[8][MAX_TGDSFILENAME_LENGTH];
@@ -576,11 +254,15 @@ __attribute__((optimize("O0")))
 #if (!defined(__GNUC__) && defined(__clang__))
 __attribute__ ((optnone))
 #endif
-int main(int argc, char **argv) {	
+int main(int argc, char **argv) {
+	
 	/*			TGDS 1.6 Standard ARM9 Init code start	*/
 	bool isTGDSCustomConsole = false;	//set default console or custom console: default console
 	GUI_init(isTGDSCustomConsole);
 	GUI_clear();
+	
+	printf("              ");
+	printf("              ");
 	
 	//xmalloc init removes args, so save them
 	int i = 0;
@@ -614,608 +296,22 @@ int main(int argc, char **argv) {
 	
 	//Show logo
 	RenderTGDSLogoMainEngine((uint8*)&TGDSLogoLZSSCompressed[0], TGDSLogoLZSSCompressed_size);
-	
 	InstallSoundSys();
 	
-	memset(globalPath, 0, sizeof(globalPath));
-	strcpy(globalPath,"/");
-	
-	menuShow();
-	
-	//Simple Triangle GL init
-	float rotateX = 0.0;
-	float rotateY = 0.0;
-	{
-		//set mode 0, enable BG0 and set it to 3D
-		SETDISPCNT_MAIN(MODE_0_3D);
-		
-		//this should work the same as the normal gl call
-		glViewport(0,0,255,191);
-		
-		glClearColor(0,0,0);
-		glClearDepth(0x7FFF);
-	}
 	initMIC();
 	
-	ReSizeGLScene(255, 191);
-	InitGL();
-
-	while(1) {
-		if(pendingPlay == true){
-			internalCodecType = playSoundStream(curChosenBrowseFile, _FileHandleVideo, _FileHandleAudio);
-			if(internalCodecType == SRC_NONE){
-				stopSoundStreamUser();
-			}
-			pendingPlay = false;
-			menuShow();
-		}
-		
-		scanKeys();
-		if (keysDown() & KEY_SELECT){
-			menuShow();
-			returnMsg msg;
-			sprintf((char*)&msg.data[0], "%s", "Test message using libnds FIFO API!");
-			if(fifoSendDatamsg(FIFO_SNDSYS, sizeof(msg), (u8*) &msg) == true){
-				//printf("X: Channel: %d Message Sent! ", FIFO_RETURN);
-			}
-			else{
-				//printf("X: Channel: %d Message FAIL! ", FIFO_RETURN);
-			}
-			
-			while(keysDown() & KEY_SELECT){
-				scanKeys();
-			}
-		}
-		
-		if (keysDown() & KEY_START){
-			while( ShowBrowserC((char *)globalPath, (char *)&curChosenBrowseFile[0], true) == true ){	//as long you keep using directories ShowBrowser will be true
-				
-			}
-			
-			scanKeys();
-			while(keysDown() & KEY_START){
-				scanKeys();
-			}
-			menuShow();
-		}
-		
-		if (keysDown() & KEY_UP){
-			char * recFile = "0:/RECNDS.WAV";
-			startRecording(recFile);
-			menuShow();
-			scanKeys();
-			while(keysHeld() & KEY_UP){
-				scanKeys();
-			}
-			endRecording();
-			menuShow();
-			printf("Recording saved to: %s ", recFile);
-		}
-		
-		if (keysDown() & KEY_DOWN){
-			
-			char InFile[80];  // input file name
-			char ch;
-			
-			ifstream InStream;
-			std::string someString;
-			
-			ofstream OutStream;
-			sprintf(InFile,"%s%s",getfatfsPath((char*)""),"filelist.txt");
-			
-			// Open file for input
-			// in.open(fin); also works
-			InStream.open(InFile, ios::in);
-
-			// ensure file is opened successfully
-			if(!InStream)
-			{
-				printf("Error open file %s",InFile);
-			}
-			else{
-				// Read in each character until eof character is read.
-				// Output it to screen.
-				int somePosition = 0;
-				while (!InStream.eof()) {
-					//Read each character.
-					InStream.get(ch);
-					someString.insert(somePosition, ToStr(ch));
-					somePosition++;
-				}
-				InStream.close();
-				printf("Read OK:%s",someString.c_str());
-			}
-			
-			while(keysDown() & KEY_DOWN){
-				scanKeys();
-				IRQWait(1, IRQ_VBLANK);
-			}
-		}
-		
-		if (keysDown() & KEY_B){
-			string fOut = string(getfatfsPath((char *)"filelist.txt"));
-			std::ofstream outfile;
-			outfile.open(fOut.c_str());
-			char curPath[MAX_TGDSFILENAME_LENGTH+1];
-			strcpy(curPath, "/");
-			
-			//Create TGDS Dir API context
-			struct FileClassList * fileClassListCtx = initFileList();
-			cleanFileList(fileClassListCtx);
-			
-			//Use TGDS Dir API context
-			int startFromIndex = 0;
-			struct FileClass * fileClassInst = NULL;
-			fileClassInst = FAT_FindFirstFile(curPath, fileClassListCtx, startFromIndex);			
-			while(fileClassInst != NULL){
-				std::string fnameOut = std::string("");
-				//directory?
-				if(fileClassInst->type == FT_DIR){
-					fnameOut = string(fileClassInst->fd_namefullPath) + string("/[dir]");
-				}
-				//file?
-				else if(fileClassInst->type == FT_FILE){
-					fnameOut = string(fileClassInst->fd_namefullPath);
-				}
-				outfile << fnameOut << endl;
-				
-				//more file/dir objects?
-				fileClassInst = FAT_FindNextFile(curPath, fileClassListCtx);
-			}
-			
-			//Free TGDS Dir API context
-			freeFileList(fileClassListCtx);
-			
-			outfile.close();
-			printf("filelist %s saved.", fOut.c_str());
-			while(keysDown() & KEY_B){
-				scanKeys();
-			}
-		}
-		
-		
-		if (keysDown() & KEY_LEFT){
-			u32 ARM7SrcAddress = 0x03800000;
-			int ARM7ReadSize = 64*1024;
-			u8* ARM7Mem = (u8*)malloc(ARM7ReadSize);
-			//ReadMemoryExt((u32*)ARM7SrcAddress, (u32 *)ARM7Mem, ARM7ReadSize); //todo: add new method
-			
-			clrscr();
-			printf("--");
-			printf("Press Y to dump ARM7@0x%x: %d bytes",ARM7SrcAddress, ARM7ReadSize);
-			printf("to 0:/ARM7.bin. ");
-			printf("-");
-			printf("Press B to exit");
-			
-			scanKeys();
-			while(1==1){
-				if(keysDown()&KEY_Y){
-					char * fnameOut = "0:/arm7.bin";
-					FILE * fout = fopen(fnameOut, "w+");
-					if(fout != NULL){
-						fwrite(ARM7Mem, 1, ARM7ReadSize, fout);
-						fclose(fout);
-					}
-					clrscr();
-					printf("--");
-					printf("--");
-					printf("Saved: %s. Press A to exit", fnameOut);
-					waitByLoopAButton();
-					menuShow();
-					break;
-				}
-				else if(keysDown()&KEY_B){
-					break;
-				}
-				scanKeys();
-				IRQWait(0, IRQ_VBLANK);
-			}
-			free(ARM7Mem);
-			scanKeys();
-			while(keysDown() & KEY_LEFT){
-				scanKeys();
-			}
-		}
-		
-		if (keysDown() & KEY_RIGHT){
-			DLDI_INTERFACE* dldiInterface = (struct DLDI_INTERFACE*)&_io_dldi_stub;
-			uint8 * dldiStart = (uint8 *)dldiInterface;
-			int dldiSize = (int)pow((double)2, (double)dldiInterface->driverSize);	// this is easily 2 << (dldiInterface->driverSize - 1), but I use pow() to test the math library in the ARM9 core
-			FILE * fh = fopen(getDldiDefaultPath().c_str(),"w+");
-			if(fh){
-				fwrite(dldiStart, 1, dldiSize, fh);
-				fclose(fh);
-				printf("%s exported.",getDldiDefaultPath().c_str());
-				printf("%d bytes",dldiSize);
-			}
-			
-			scanKeys();
-			while(keysDown() & KEY_RIGHT){
-				scanKeys();
-			}
-		}
-		
-		if (keysDown() & KEY_Y){
-			//Choose the test
-			clrscr();
-			
-			int testIdx = 0;
-			while(1==1){
-				scanKeys();
-				
-				while(keysDown() & KEY_UP){
-					if(testIdx < (ListSize-1)){
-						testIdx++;
-					}
-					scanKeys();
-					while(!(keysUp() & KEY_UP)){
-						scanKeys();
-					}
-					printfCoords(0, 10, "                                                    ");	//clean old
-					printfCoords(0, 11, "                                                    ");
-				}
-				
-				while(keysDown() & KEY_DOWN){
-					if(testIdx > 0){
-						testIdx--;
-					}
-					scanKeys();
-					while(!(keysUp() & KEY_DOWN)){
-						scanKeys();
-					}
-					printfCoords(0, 10, "                                                    ");	//clean old
-					printfCoords(0, 11, "                                                    ");
-				}
-				
-				if(keysDown() & KEY_A){
-					break;
-				}
-				
-				printfCoords(0, 10, "Which Test? [%s] >%d", TestList[testIdx], TGDSPrintfColor_Yellow);
-				printfCoords(0, 11, "Press (A) to start test");
-			}
-			
-			switch(testIdx){
-				case (0):{ //c_partial_mock
-					opmock_test_suite_reset();
-					opmock_register_test(test_fizzbuzz_with_15, "test_fizzbuzz_with_15");
-					opmock_register_test(test_fizzbuzz_many_3, "test_fizzbuzz_many_3");
-					opmock_register_test(test_fizzbuzz_many_5, "test_fizzbuzz_many_5");
-					opmock_test_suite_run();
-				}
-				break;
-				case (1):{ //c_regression
-					opmock_test_suite_reset();
-					opmock_register_test(test_push_pop_stack, "test_push_pop_stack");
-					opmock_register_test(test_push_pop_stack2, "test_push_pop_stack2");
-					opmock_register_test(test_push_pop_stack3, "test_push_pop_stack3");
-					opmock_register_test(test_push_pop_stack4, "test_push_pop_stack4");
-					opmock_register_test(test_verify, "test_verify");
-					opmock_register_test(test_verify_with_matcher_cstr, "test_verify_with_matcher_cstr");
-					opmock_register_test(test_verify_with_matcher_int, "test_verify_with_matcher_int");
-					opmock_register_test(test_verify_with_matcher_float, "test_verify_with_matcher_float");
-					opmock_register_test(test_verify_with_matcher_custom, "test_verify_with_matcher_custom");
-					opmock_register_test(test_cmp_ptr_with_typedef, "test_cmp_ptr_with_typedef");
-					opmock_register_test(test_cmp_ptr_with_typedef_fail, "test_cmp_ptr_with_typedef_fail");	
-					opmock_test_suite_run();
-				}
-				break;
-				case (2):{ //cpp_tests
-					doCppTests(argc, argv);
-				}
-				break;
-				case (3):{ //posix_filehandle_tests
-					clrscr();
-					printf(" - - ");
-					printf(" - - ");
-					printf(" - - ");
-					
-					if(testPosixFilehandle_fopen_fclose_method() == 0){
-						printf("testPosixFilehandle_fopen_fclose_method() OK >%d", TGDSPrintfColor_Green);
-					}
-					else{
-						printf("testPosixFilehandle_fopen_fclose_method() ERROR >%d", TGDSPrintfColor_Red);
-					}
-					
-					if(testPosixFilehandle_sprintf_fputs_fscanf_method() == 0){
-						printf("testPosixFilehandle_sprintf_fputs_fscanf_method() OK >%d", TGDSPrintfColor_Green);
-					}
-					else{
-						printf("testPosixFilehandle_sprintf_fputs_fscanf_method() ERROR >%d", TGDSPrintfColor_Red);
-					}
-					
-					if(testPosixFilehandle_fread_fwrite_method() == 0){
-						printf("testPosixFilehandle_fread_fwrite_method() OK >%d", TGDSPrintfColor_Green);
-					}
-					else{
-						printf("testPosixFilehandle_fread_fwrite_method() ERROR >%d", TGDSPrintfColor_Red);
-					}
-					
-					if(testPosixFilehandle_fgetc_feof_method() == 0){
-						printf("testPosixFilehandle_fgetc_feof_method() OK >%d", TGDSPrintfColor_Green);
-					}
-					else{
-						printf("testPosixFilehandle_fgetc_feof_method() ERROR >%d", TGDSPrintfColor_Red);
-					}
-					
-					if(testPosixFilehandle_fgets_method() == 0){
-						printf("testPosixFilehandle_fgets_method() OK >%d", TGDSPrintfColor_Green);
-					}
-					else{
-						printf("testPosixFilehandle_fgets_method() ERROR >%d", TGDSPrintfColor_Red);
-					}
-					
-					if(testPosixFilehandle_fseek_rewind_method() == 0){
-						printf("testPosixFilehandle_fseek_rewind_method() OK >%d", TGDSPrintfColor_Green);
-					}
-					else{
-						printf("testPosixFilehandle_fseek_rewind_method() ERROR >%d", TGDSPrintfColor_Red);
-					}
-					
-				}
-				break;
-				case (4):{ 
-					//Unit Test: #0
-					//ndsDisplayListUtils_tests: Nintendo DS reads embedded and compiled Cube.bin binary (https://bitbucket.org/Coto88/blender-nds-exporter/src) from filesystem
-					//which generates a NDS GX Display List object, then it gets compiled again into a binary DisplayList.
-					bool res = ndsDisplayListUtilsTestCaseARM9("0:/Cube_test.bin", "0:/Cube_compiled.bin");
-					clrscr();
-					printf(" - - ");
-					printf(" - - ");
-					printf(" - - ");
-					
-					if(res != true){
-						printf("ndsDisplayListUtilsTestCaseARM9 ERROR >%d", TGDSPrintfColor_Red);
-						printf("Cube_test.bin missing from SD root path >%d", TGDSPrintfColor_Red);
-					}
-					else{
-						printf("ndsDisplayListUtilsTestCaseARM9 OK >%d", TGDSPrintfColor_Green);
-					}
-					
-					//Unit Test #1: Tests OpenGL DisplayLists components functionality then emitting proper GX displaylists, unpacked format.
-					GLInitExt();
-					int list = glGenLists(10);
-					if(list){
-						glListBase(list);
-						bool ret = glIsList(list); //should return false (DL generated, but no displaylist-name was generated)
-						glNewList(list, GL_COMPILE);
-						ret = glIsList(list); //should return true (DL generated, and displaylist-name was generated)
-						if(ret == true){
-							for (int i = 0; i <10; i ++){ //Draw 10 cubes
-								glPushMatrix();
-								glRotatef(36*i,0.0,0.0,1.0);
-								glTranslatef((float)10.0, (float)0.0, (float)0.0);
-								glPopMatrix(1);
-							}
-						}
-						glEndList();
-						
-						glListBase(list + 1);
-						glNewList (list + 1, GL_COMPILE);//Create a second display list and execute it
-						ret = glIsList(list + 1); //should return true (DL generated, and displaylist-name was generated)
-						if(ret == true){
-							for (int i = 0; i <20; i ++){ //Draw 20 triangles
-								glPushMatrix();
-								glRotatef(18*i,0.0,0.0,1.0);
-								glTranslatef((float)15.0, (float)0.0, (float)0.0);
-								glPopMatrix(1);
-							}
-						}
-						glEndList();//The second display list is created
-					}
-					
-					u32 * CompiledDisplayListsBuffer = getInternalDisplayListBuffer(); //Lists called earlier are written to this buffer, using the unpacked GX command format.
-					//Unit Test #2:
-					//Takes an unpacked format display list, gets converted into packed format then exported as C Header file source code
-					char cwdPath[256];
-					char outPath[256];
-					strcpy(cwdPath, "0:/");
-					sprintf(outPath, "%s%s", cwdPath, "PackedDisplayList.h");
-					bool result = packAndExportSourceCodeFromRawUnpackedDisplayListFormat(outPath, CompiledDisplayListsBuffer);
-					if(result == true){
-						printf("OK:Unpacked DisplayList PACKED and exported as C source: >%d", TGDSPrintfColor_Green);
-						printf("%s", outPath);
-					}
-					else{
-						printf("Unpacked Display List generation failure >%d", TGDSPrintfColor_Red);
-					}
-					
-					//Unit Test #3: Using rawUnpackedToRawPackedDisplayListFormat() in target platform builds a packed Display List from an unpacked one IN MEMORY.
-					//Resembles the same behaviour as if C source file generated in Unit Test #2 was then built through ToolchainGenericDS and embedded into the project.
-					u32 Packed_DL_Binary[2048/4];
-					memset(Packed_DL_Binary, 0, sizeof(Packed_DL_Binary));
-					bool result2 = rawUnpackedToRawPackedDisplayListFormat(CompiledDisplayListsBuffer, (u32*)&Packed_DL_Binary[0]);
-					if(result2 == true){
-						//Save to file
-						sprintf(outPath, "%s%s", cwdPath, "PackedDisplayListCompiled.bin");
-						FILE * fout = fopen(outPath, "w+");
-						if(fout != NULL){
-							int packedSize = Packed_DL_Binary[0];
-							int written = fwrite((u8*)&Packed_DL_Binary[0], 1, packedSize, fout);
-							printf("OK:Unpacked DisplayList PACKED and exported as GX binary: >%d", TGDSPrintfColor_Green);
-							printf("Written: %d bytes", packedSize);
-							fclose(fout);
-						}
-					}
-					else{
-						printf("Unpacked Display List generation failure >%d", TGDSPrintfColor_Red);
-					}
-					
-					//Unit Test #4: glCallLists test
-					GLuint index = glGenLists(10);  // create 10 display lists
-					GLubyte lists[10];              // allow maximum 10 lists to be rendered
-					
-					//Init glCallLists
-					int DLOffset = 0;
-					for(DLOffset = 0; DLOffset < 10; DLOffset++){
-						lists[DLOffset] = (GLubyte)-1;
-					}
-					//Compile 5 display lists
-					for(DLOffset = 0; DLOffset < 5; DLOffset++){
-						glNewList(index + DLOffset, GL_COMPILE);   // compile each one until the 10th
-						glEndList();
-					}
-					
-					// draw odd placed display lists names only (1st, 3rd, 5th, 7th, 9th)
-					lists[0]=0; lists[1]=2; lists[2]=4; lists[3]=6; lists[4]=8;
-					
-					glListBase(index);              // set base offset
-					glCallLists(10, GL_UNSIGNED_BYTE, lists); //only OpenGL Display List names set earlier will run!
-
-					//Unit Test #5: glDeleteLists test
-					glDeleteLists(index, 5); //remove 5 of them
-				}
-				break;
-				
-				case(5):{
-					//argv_chainload_test: Chainloads through toolchaingenericds-multiboot into toolchaingenericds-argvtest while passing an argument to it.
-					//Case use: Booting TGDS homebrew through TGDS-Multiboot in external loaders, and passing arguments to said TGDS homebrew
-					
-					//Default case use
-					char * TGDS_CHAINLOADEXEC = NULL;
-					char * TGDS_CHAINLOADTARGET = NULL;
-					char * TGDS_CHAINLOADCALLER = NULL;
-					if(__dsimode == true){
-						TGDS_CHAINLOADCALLER = "0:/ToolchainGenericDS-UnitTest.srl";
-						TGDS_CHAINLOADEXEC = "0:/ToolchainGenericDS-multiboot.srl";
-						TGDS_CHAINLOADTARGET = "0:/SNEmulDS.srl"; //ToolchainGenericDS-argvtest.srl
-					}
-					else{
-						TGDS_CHAINLOADCALLER = "0:/ToolchainGenericDS-UnitTest.nds";
-						TGDS_CHAINLOADEXEC = "0:/ToolchainGenericDS-multiboot.nds";
-						TGDS_CHAINLOADTARGET = "0:/SNEmulDS.nds"; //ToolchainGenericDS-argvtest.nds
-					}
-					char thisArgv[4][MAX_TGDSFILENAME_LENGTH];
-					memset(thisArgv, 0, sizeof(thisArgv));
-					strcpy(&thisArgv[0][0], TGDS_CHAINLOADCALLER);	//Arg0:	This Binary loaded
-					strcpy(&thisArgv[1][0], TGDS_CHAINLOADEXEC);	//Arg1:	NDS Binary to chainload through TGDS-MB
-					strcpy(&thisArgv[2][0], TGDS_CHAINLOADTARGET);	//Arg2: NDS Binary loaded from TGDS-MB	
-					strcpy(&thisArgv[3][0], "0:/snes/smw.smc");					//Arg3: NDS Binary loaded from TGDS-MB's     ARG0
-					addARGV(4, (char*)&thisArgv);
-					strcpy(curChosenBrowseFile, TGDS_CHAINLOADEXEC);
-					if(TGDSMultibootRunNDSPayload(curChosenBrowseFile) == false){ //should never reach here, nor even return true. Should fail it returns false
-						printf("Invalid NDS/TWL Binary >%d", TGDSPrintfColor_Yellow);
-						printf("or you are in NTR mode trying to load a TWL binary. >%d", TGDSPrintfColor_Yellow);
-						printf("or you are missing the TGDS-multiboot payload in root path. >%d", TGDSPrintfColor_Yellow);
-						printf("Press (A) to continue. >%d", TGDSPrintfColor_Yellow);
-						while(1==1){
-							scanKeys();
-							if(keysDown()&KEY_A){
-								scanKeys();
-								while(keysDown() & KEY_A){
-									scanKeys();
-								}
-								break;
-							}
-						}
-						menuShow();
-					}
-				}
-				break;
-			}
-			
-			
-			printf("Tests done. Press (A) to exit.");
-			while(1==1){
-				scanKeys();	
-				if(keysDown() & KEY_A){
-					break;
-				}	
-			}
-			menuShow();
-		}
-		
-		if (keysDown() & KEY_X){
-			reportTGDSPayloadMode((u32)&bufModeARM7[0]);
-			scanKeys();
-			while(keysHeld() & KEY_X){
-				scanKeys();
-			}
-			menuShow();
-		}
-		
-		
-		/*
-		int pen_delta[2];
-		bool isTSCActive = get_pen_delta( &pen_delta[0], &pen_delta[1] );
-		rotateY -= pen_delta[0];
-		rotateX -= pen_delta[1];
-		
-		if( isTSCActive == false ){
-			printfCoords(0, 16, " No TSC Activity ----");
-		}
-		else{
-			
-			printfCoords(0, 16, "TSC Activity ----");
-			
-			glReset();
+	// Create Woopsi UI
+	WoopsiTemplate WoopsiTemplateApp;
+	WoopsiTemplateProc = &WoopsiTemplateApp;
+	return WoopsiTemplateApp.main(argc, argv);
 	
-			//any floating point gl call is being converted to fixed prior to being implemented
-			gluPerspective(35, 256.0 / 192.0, 0.1, 40);
-
-			gluLookAt(	0.0, 0.0, 1.0,		//camera possition 
-						0.0, 0.0, 0.0,		//look at
-						0.0, 1.0, 0.0);		//up
-
-			glPushMatrix();
-
-			//move it away from the camera
-			glTranslate3f32(0, 0, floattof32(-1));
-					
-			glRotateX(rotateX);
-			glRotateY(rotateY);			
-			glMatrixMode(GL_MODELVIEW);
-			
-			//not a real gl function and will likely change
-			glPolyFmt(POLY_ALPHA(31) | POLY_CULL_NONE);
-			
-			//glShadeModel(GL_FLAT); //forces the fill color to be the first glColor3b call
-			
-			//draw the obj
-			glBegin(GL_TRIANGLE);
-				
-				glColor3b(31,0,0);
-				glVertex3v16(inttov16(-1),inttov16(-1),0);
-
-				glColor3b(0,31,0);
-				glVertex3v16(inttov16(1), inttov16(-1), 0);
-
-				glColor3b(0,0,31);
-				glVertex3v16(inttov16(0), inttov16(1), 0);
-				
-			glEnd();
-			glPopMatrix(1);
-			glFlush();
-		}
-		*/
-
-		DrawGLScene();
-		
-		/*
-		if (keysDown() & KEY_LEFT)
-		{
-			yrot-=0.2f;
-		}
-		if (keysDown() & KEY_UP)
-		{
-			xrot-=0.2f;
-		}
-		if (keysDown() & KEY_RIGHT)
-		{
-			yrot+=0.2f;
-		}
-		if (keysDown() & KEY_DOWN)
-		{
-			xrot+=0.2f;
-		}
-		*/
-		
+	while(1) {
 		handleARM9SVC();	/* Do not remove, handles TGDS services */
 		IRQVBlankWait();
 	}
+
 	return 0;
 }
-
 
 //GL Display Lists Unit Test: Cube Demo
 // Build Cube Display Lists

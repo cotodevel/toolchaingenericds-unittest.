@@ -45,7 +45,7 @@ static void InstallSoundSys()
 }
 
 //---------------------------------------------------------------------------------
-int main(int _argc, sint8 **_argv) {
+int main(int argc, char **argv) {
 //---------------------------------------------------------------------------------
 	/*			TGDS 1.6 Standard ARM7 Init code start	*/
 	

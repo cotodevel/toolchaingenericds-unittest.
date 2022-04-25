@@ -2,8 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
-
-#include "consoleTGDS.h"
+#include "WoopsiTemplate.h"
 
 int opmock_test_error;
 int opmock_test_run;
@@ -118,11 +117,7 @@ void opmock_test_suite_run()
  	opmock_test_run = 0;
   
  	// reset terminal
-	clrscr();
-	printf(" -- ");
-	printf(" -- ");
-	printf(" -- ");
-	printf("Running tests: ");
+	printfWoopsi("Running tests: ");
 
 	for(counter = 0; counter < opmock_test_counter; counter++) {
 		int previous_error = opmock_test_error;
@@ -140,7 +135,7 @@ void opmock_test_suite_run()
 		}
 
 		if(opmock_test_error > previous_error) {
-			printf("NOT OK test '%s'", opmock_test_array[counter].test_name);
+			printfWoopsi("NOT OK test '%s'", opmock_test_array[counter].test_name);
 			if(report != NULL) {
 				/* Compose a string with all error messages */
 				char messages [10000];
@@ -150,7 +145,7 @@ void opmock_test_suite_run()
 			} 
 		}
 		else {
-			printf("OK test '%s'", opmock_test_array[counter].test_name);
+			printfWoopsi("OK test '%s'", opmock_test_array[counter].test_name);
 		}
 		if(report != NULL) {
 			fprintf(report, "    </testcase>\n");
@@ -162,7 +157,7 @@ void opmock_test_suite_run()
 	{
 		
 	}
-	printf("OPMOCK : %d tests run, %d tests failed.", opmock_test_run, opmock_test_error);
+	printfWoopsi("OPMOCK : %d tests run, %d tests failed.", opmock_test_run, opmock_test_error);
 
 	if(report != NULL) {
 		fprintf(report, "</testsuite>\n");
@@ -420,7 +415,7 @@ void opmock_print_error_messages()
 		{
 			
 		}
-		printf("%s", opmock_error_message_array[i].message);
+		printfWoopsi("%s", opmock_error_message_array[i].message);
 	}
 }
 

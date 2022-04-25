@@ -38,6 +38,8 @@ extern "C"{
 //				FrameSenderUser = HandleSendUserspace((uint8*)somebuf,sizeof(somebuf));	
 //}
 
+extern void ONDSWIFI_UDPNifiInvalidIP(char * targetIP);
+
 #ifdef __cplusplus
 }
 #endif
