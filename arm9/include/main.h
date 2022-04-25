@@ -34,12 +34,15 @@ USA
 extern "C" {
 #endif
 
-extern int main(int argc, char ** argv);
-//TGDS Dir API: Directory Iterator(s)
-extern char curChosenBrowseFile[256+1];
-extern char globalPath[MAX_TGDSFILENAME_LENGTH+1];
-extern int internalCodecType;//Internal because WAV raw decompressed buffers are used if Uncompressed WAV or ADPCM
+extern int main(int argc, char **argv);
+extern void ApplicationMainLoop();
 
+//TGDS Soundstreaming API
+extern int internalCodecType;
+extern struct fd * _FileHandleVideo; 
+extern struct fd * _FileHandleAudio;
+extern bool stopSoundStreamUser();
+extern void closeSoundUser();
 extern char args[8][MAX_TGDSFILENAME_LENGTH];
 extern char *argvs[8];
 
@@ -61,6 +64,8 @@ extern int DrawGLScene();
 
 extern bool dumpARM7ARM9Binary(char * filename);
 extern void initMIC();
+extern int do_sound(char *sound);
+extern bool get_pen_delta( int *dx, int *dy );
 
 #ifdef __cplusplus
 }

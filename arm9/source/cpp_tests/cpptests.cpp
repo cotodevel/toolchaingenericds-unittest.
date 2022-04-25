@@ -3,6 +3,7 @@
 #include "opmock.h"
 #include "cpptests.h"
 #include "consoleTGDS.h"
+#include "WoopsiTemplate.h"
 
 class ToTest
 {
@@ -21,7 +22,7 @@ int ToTest::doSomething(int a)
 static int class3_callback (int  a, int  b, int calls, space1::Class1 * ptr)
 {
   // perform a side effect on the class itself
-  printf("Calling class3_callback a=%d b=%d calls=%d val=%d", a, b, calls,ptr->attribute1);
+  printfWoopsi("Calling class3_callback a=%d b=%d calls=%d val=%d", a, b, calls,ptr->attribute1);
   ptr->attribute1 = 42;
   return 1234567;
 }
@@ -83,8 +84,8 @@ X templateFunctionNoNamespace(X &x, Y y)
 
   if (templateFunctionNoNamespace_struct_inst.expectedCalls == 0)
     {
-      printf ("WARNING : unexpected call of templateFunctionNoNamespace");
-	  printf(" returning random value.");
+      printfWoopsi("WARNING : unexpected call of templateFunctionNoNamespace");
+	  printfWoopsi(" returning random value.");
       return default_res;
     }
 
@@ -101,12 +102,12 @@ X templateFunctionNoNamespace(X &x, Y y)
       //lui passer 2 pointeurs sur void.
       if ((void *) templateFunctionNoNamespace_struct_inst.calls[0].x != (void *)&x)
         {
-			printf("WARNING : wrong value for parameter 'x' when calling templateFunctionNoNamespace (call %d)", templateFunctionNoNamespace_struct_inst.actualCalls);
+			printfWoopsi("WARNING : wrong value for parameter 'x' when calling templateFunctionNoNamespace (call %d)", templateFunctionNoNamespace_struct_inst.actualCalls);
         }
 
       if (templateFunctionNoNamespace_struct_inst.calls[0].y != y)
         {
-			printf("WARNING : wrong value for parameter 'y' when calling templateFunctionNoNamespace (call %d)", templateFunctionNoNamespace_struct_inst.actualCalls);
+			printfWoopsi("WARNING : wrong value for parameter 'y' when calling templateFunctionNoNamespace (call %d)", templateFunctionNoNamespace_struct_inst.actualCalls);
         }
     }
 
@@ -119,12 +120,9 @@ X templateFunctionNoNamespace(X &x, Y y)
   return default_res;
 }
 
-int doCppTests(int argc, char *argv[])
+int doCppTests()
 {
-	clrscr();
-	printf(" -- ");
-	printf(" -- ");
-	printf("Begin CPP Tests. ");
+	printfWoopsi("Begin CPP Tests. ");
 	
 //TESTS1
   // initialize the mock class
@@ -133,10 +131,10 @@ int doCppTests(int argc, char *argv[])
   ToTest class1;
   int res = class1.doSomething(4);
   if(res != 16) {
-	printf("Failure in result");
+	printfWoopsi("Failure in result");
   }
   res = class1.doSomething(4);
-  printf("Result 2 %d", res);
+  printfWoopsi("Result 2 %d", res);
   
   // now use an instance callback - meaning that I need to get
   // a pointer on the class I want to mock
@@ -144,8 +142,8 @@ int doCppTests(int argc, char *argv[])
   class3.attribute1 = -777;
 
   int res2 = class3.multiply(2, 24);
-  printf("Result instance mock:%d", res2);
-  printf("attribute value in class:%d", class3.attribute1);
+  printfWoopsi("Result instance mock:%d", res2);
+  printfWoopsi("attribute value in class:%d", class3.attribute1);
 
 //TESTS2
 	templateFunctionNoNamespace_struct_inst.expectedCalls = 32;
@@ -153,10 +151,10 @@ int doCppTests(int argc, char *argv[])
 	float param1 = 2.0;
 	double resDouble = templateFunctionNoNamespace<float, double> (param1, 3.0);
 	if((3.0 - (resDouble - param1)) == param1){
-		printf("CPP 2 Test OK. >%d", TGDSPrintfColor_Green);
+		printfWoopsi("CPP 2 Test OK.");
 	}
 	else{
-		printf("CPP 2 Test ERROR. >%d", TGDSPrintfColor_Red);
+		printfWoopsi("CPP 2 Test ERROR.");
 	}
 	return 0;
 }

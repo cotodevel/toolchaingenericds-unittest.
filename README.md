@@ -19,32 +19,13 @@ make <enter>
 After compiling, run the example in NDS. 
 
 Project Specific description:
-	Press Y button to perform a suite of tests to test Clang, and C/C++ functinality. Performs C/C++ tests, and should pass all of them.
+A Woopsi UI + TGDS SDK template for UI control handling on the NintendoDS. 
+Draw the pop up windows across the screen or scroll other windows to test touchscreen. 
+- Performs various SDK tests using the touchscreen, including Local Nifi, UDP Nifi(https://bitbucket.org/Coto88/toolchaingenericds-helper/src/master/misc/tcp/), provided a 2nd DS (real hardware) to connect to, and other tests
 
-/release folder has the latest binary precompiled for your convenience.
+Note: UI Controls experimental.
 
 Latest stable release: https://bitbucket.org/Coto88/ToolchainGenericDS-UnitTest/get/TGDS1.65.zip
 
-Notes
-For running ndsDisplayListUtils tests copy Cube_test.bin from /release folder to SD root path, otherwise it'll fail.
 
 Coto
-
-
-
-Test Unit results in TGDS:
-
-Malloc:
-
-![ToolchainGenericDS](img/mallocComparison.png)
-
-
-TGDS Filesystem:
-
-![ToolchainGenericDS](img/fstest1.png)
-
-![ToolchainGenericDS](img/fstest2.png)
-
-![ToolchainGenericDS](img/fstest3.png)
-
-![ToolchainGenericDS](img/fstest4.png)

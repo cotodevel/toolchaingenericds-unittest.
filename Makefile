@@ -19,8 +19,9 @@
 #TGDS1.6 compatible Makefile
 
 #ToolchainGenericDS specific: Use Makefiles from either TGDS, or custom
+#Note: Woopsi template mostly targets ARM9 SDK. Thus the default ARM7 template is used
 export SOURCE_MAKEFILE7 = default
-export SOURCE_MAKEFILE9 = default
+export SOURCE_MAKEFILE9 = custom
 
 #Shared
 include $(DEFAULT_GCC_PATH)/Makefile.basenewlib
@@ -88,7 +89,6 @@ export DIRS_ARM9_SRC = data/	\
 export DIRS_ARM9_HEADER = data/	\
 			build/	\
 			include/	\
-			source/	\
 			source/gui/	\
 			source/TGDSMemoryAllocator/	\
 			../common/	\
@@ -99,7 +99,7 @@ export DIRS_ARM9_HEADER = data/	\
 			source/c_regression/	\
 			source/cpp_tests/	\
 			source/posix_filehandle_tests/
-
+			
 # Build Target(s)	(both processors here)
 all: $(EXECUTABLE_FNAME)
 #all:	debug

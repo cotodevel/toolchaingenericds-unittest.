@@ -87,9 +87,9 @@ int testPosixFilehandle_sprintf_fputs_fscanf_method() {
 	fputs(outBuf, fileName);
     rewind(fileName);
     fscanf(fileName, readWriteCharFormat, str1, str2, &yr);
-    //printf("1st word %s \t", str1);	//1st word "Welcome"
-    //printf("2nd word  %s \t", str2);	//2nd word  "to"
-    //printf("Year-Name  %d \t", yr);	//Year-Name  "2022"
+    //printfWoopsi("1st word %s \t", str1);	//1st word "Welcome"
+    //printfWoopsi("2nd word  %s \t", str2);	//2nd word  "to"
+    //printfWoopsi("Year-Name  %d \t", yr);	//Year-Name  "2022"
 	if(
 		(yr == ((sint32)NDSClock->tm_year))
 	){
@@ -152,12 +152,12 @@ int testPosixFilehandle_fread_fwrite_method() {
 				}
 			}
 			else{
-				printf("failed reading complete buffer: %d bytes", readBuf);
+				printfWoopsi("failed reading complete buffer: %d bytes", readBuf);
 			}
 		}
 	}
 	else{
-		printf("failed writing complete buffer");
+		printfWoopsi("failed writing complete buffer");
 	}
 	
 	fclose(fileTest);

@@ -32,11 +32,14 @@ USA
 #include "InterruptsARMCores_h.h"
 #include "libutilsShared.h"
 #include "microphoneShared.h"
+
 #ifdef ARM7
 #include <string.h>
+
 #include "main.h"
 #include "wifi_arm7.h"
 #include "spifwTGDS.h"
+#include "dswnifi_lib.h"
 #endif
 
 #ifdef ARM9
@@ -55,20 +58,23 @@ struct sIPCSharedTGDSSpecific* getsIPCSharedTGDSSpecific(){
 	return sIPCSharedTGDSSpecificInst;
 }
 
-//inherits what is defined in: ipcfifoTGDS.c
 #ifdef ARM9
 __attribute__((section(".itcm")))
 #endif
 void HandleFifoNotEmptyWeakRef(u32 cmd1, uint32 cmd2){
+	
 	switch (cmd1) {
+		//NDS7: 
 		#ifdef ARM7
 		
 		#endif
 		
+		//NDS9: 
 		#ifdef ARM9
 		
 		#endif
 	}
+	
 }
 
 #ifdef ARM9
@@ -78,7 +84,6 @@ void HandleFifoEmptyWeakRef(uint32 cmd1,uint32 cmd2){
 }
 
 //project specific stuff
-
 
 #ifdef ARM9
 
