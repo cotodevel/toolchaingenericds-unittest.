@@ -391,96 +391,7 @@ void WoopsiTemplate::handleValueChangeEvent(const GadgetEventArgs& e) {
 					printfWoopsi("ndsDisplayListUtilsTestCaseARM9 OK");
 				}
 				
-				//Unit Test #1: Tests OpenGL DisplayLists components functionality then emitting proper GX displaylists, unpacked format.
-				GLInitExt();
-				int list = glGenLists(10);
-				if(list){
-					glListBase(list);
-					bool ret = glIsList(list); //should return false (DL generated, but no displaylist-name was generated)
-					glNewList(list, GL_COMPILE);
-					ret = glIsList(list); //should return true (DL generated, and displaylist-name was generated)
-					if(ret == true){
-						for (int i = 0; i <10; i ++){ //Draw 10 cubes
-							glPushMatrix();
-							glRotatef(36*i,0.0,0.0,1.0);
-							glTranslatef((float)10.0, (float)0.0, (float)0.0);
-							glPopMatrix(1);
-						}
-					}
-					glEndList();
-					
-					glListBase(list + 1);
-					glNewList (list + 1, GL_COMPILE);//Create a second display list and execute it
-					ret = glIsList(list + 1); //should return true (DL generated, and displaylist-name was generated)
-					if(ret == true){
-						for (int i = 0; i <20; i ++){ //Draw 20 triangles
-							glPushMatrix();
-							glRotatef(18*i,0.0,0.0,1.0);
-							glTranslatef((float)15.0, (float)0.0, (float)0.0);
-							glPopMatrix(1);
-						}
-					}
-					glEndList();//The second display list is created
-				}
 				
-				u32 * CompiledDisplayListsBuffer = getInternalDisplayListBuffer(); //Lists called earlier are written to this buffer, using the unpacked GX command format.
-				//Unit Test #2:
-				//Takes an unpacked format display list, gets converted into packed format then exported as C Header file source code
-				char cwdPath[256];
-				char outPath[256];
-				strcpy(cwdPath, "0:/");
-				sprintf(outPath, "%s%s", cwdPath, "PackedDisplayList.h");
-				bool result = packAndExportSourceCodeFromRawUnpackedDisplayListFormat(outPath, CompiledDisplayListsBuffer);
-				if(result == true){
-					printfWoopsi("OK:Unpacked DisplayList PACKED and exported as C source: %s", outPath);
-				}
-				else{
-					printfWoopsi("Unpacked Display List generation failure");
-				}
-				
-				//Unit Test #3: Using rawUnpackedToRawPackedDisplayListFormat() in target platform builds a packed Display List from an unpacked one IN MEMORY.
-				//Resembles the same behaviour as if C source file generated in Unit Test #2 was then built through ToolchainGenericDS and embedded into the project.
-				u32 Packed_DL_Binary[2048/4];
-				memset(Packed_DL_Binary, 0, sizeof(Packed_DL_Binary));
-				bool result2 = rawUnpackedToRawPackedDisplayListFormat(CompiledDisplayListsBuffer, (u32*)&Packed_DL_Binary[0]);
-				if(result2 == true){
-					//Save to file
-					sprintf(outPath, "%s%s", cwdPath, "PackedDisplayListCompiled.bin");
-					FILE * fout = fopen(outPath, "w+");
-					if(fout != NULL){
-						int packedSize = Packed_DL_Binary[0];
-						int written = fwrite((u8*)&Packed_DL_Binary[0], 1, packedSize, fout);
-						printfWoopsi("OK:Unpacked DisplayList PACKED and exported as GX binary: Written: %d bytes", packedSize);
-						fclose(fout);
-					}
-				}
-				else{
-					printfWoopsi("Unpacked Display List generation failure");
-				}
-				
-				//Unit Test #4: glCallLists test
-				GLuint index = glGenLists(10);  // create 10 display lists
-				GLubyte lists[10];              // allow maximum 10 lists to be rendered
-				
-				//Init glCallLists
-				int DLOffset = 0;
-				for(DLOffset = 0; DLOffset < 10; DLOffset++){
-					lists[DLOffset] = (GLubyte)-1;
-				}
-				//Compile 5 display lists
-				for(DLOffset = 0; DLOffset < 5; DLOffset++){
-					glNewList(index + DLOffset, GL_COMPILE);   // compile each one until the 10th
-					glEndList();
-				}
-				
-				// draw odd placed display lists names only (1st, 3rd, 5th, 7th, 9th)
-				lists[0]=0; lists[1]=2; lists[2]=4; lists[3]=6; lists[4]=8;
-				
-				glListBase(index);              // set base offset
-				glCallLists(10, GL_UNSIGNED_BYTE, lists); //only OpenGL Display List names set earlier will run!
-
-				//Unit Test #5: glDeleteLists test
-				glDeleteLists(index, 5); //remove 5 of them
 			}
 			else if(strncmp(currentFileChosen,"argv_chainload_test", strlen(currentFileChosen)) == 0){
 				//argv_chainload_test: Chainloads through toolchaingenericds-multiboot into toolchaingenericds-argvtest while passing an argument to it.
@@ -932,6 +843,7 @@ void WoopsiTemplate::handleClickEvent(const GadgetEventArgs& e) {
 				//_MultiLineTextBoxLogger->appendText(debugBuf);
 
 				//Simple Triangle GL init
+				glInit(); //NDSDLUtils: Initializes a new videoGL context
 				rotateX = 0.0;
 				rotateY = 0.0;
 				{

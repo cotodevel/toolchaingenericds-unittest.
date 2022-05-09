@@ -57,11 +57,6 @@ extern GLfloat	yrot;				// Rotates Cube On The Y Axis
 
 extern GLfloat boxcol[5][3];
 extern GLfloat topcol[5][3];
-extern GLvoid BuildLists();
-extern GLvoid ReSizeGLScene(GLsizei width, GLsizei height);
-extern int InitGL();
-extern int DrawGLScene();
-
 extern bool dumpARM7ARM9Binary(char * filename);
 extern void initMIC();
 extern int do_sound(char *sound);
