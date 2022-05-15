@@ -119,12 +119,12 @@ void setupLibUtils(){
 		(HandleFifoNotEmptyWeakRefLibUtils_fn)&libUtilsFIFONotEmpty, //ARM7 & ARM9
 		(wifiUpdateVBLANKARM7LibUtils_fn)&Wifi_Update, //ARM7
 		(wifiInterruptARM7LibUtils_fn)&Wifi_Interrupt,  //ARM7
-		(SoundStreamTimerHandlerARM7LibUtils_fn)&TIMER1Handler, //ARM7: void TIMER1Handler()
-		(SoundStreamStopSoundARM7LibUtils_fn)&stopSound, 	//ARM7: void stopSound()
-		(SoundStreamSetupSoundARM7LibUtils_fn)&setupSound,	//ARM7: void setupSound()
+		NULL, //ARM7: void TIMER1Handler()
+		NULL, 	//ARM7: void stopSound()
+		NULL,	//ARM7: void setupSound()
 		(initMallocARM7LibUtils_fn)&initARM7Malloc, //ARM7: void initARM7Malloc(u32 ARM7MallocStartaddress, u32 ARM7MallocSize);
 		(wifiDeinitARM7ARM9LibUtils_fn)&DeInitWIFI,  //ARM7 & ARM9: DeInitWIFI()
-		(MicInterruptARM7LibUtils_fn)&micInterrupt //ARM7: micInterrupt()
+		NULL //ARM7: micInterrupt()
 	);
 	#endif
 }
