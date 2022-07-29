@@ -231,6 +231,10 @@ void WoopsiTemplate::startup(int argc, char **argv) {
 	_MultiLineTextBoxLogger = new MultiLineTextBox(rect.x, rect.y, 262, 170, WoopsiString(TGDSPROJECTNAME), Gadget::GADGET_DRAGGABLE, 5);
 	_topScreen->addGadget(_MultiLineTextBoxLogger);
 	
+	if(__dsimode == true){
+		TWLSetTouchscreenTWLMode();
+	}
+	
 	enableDrawing();	// Ensure Woopsi can now draw itself
 	redraw();			// Draw initial state
 }
@@ -379,6 +383,7 @@ void WoopsiTemplate::handleValueChangeEvent(const GadgetEventArgs& e) {
 				}
 			}
 			else if(strncmp(currentFileChosen,"ndsDisplayListUtils_tests", strlen(currentFileChosen)) == 0){
+				/*
 				//Unit Test: #0
 				//ndsDisplayListUtils_tests: Nintendo DS reads embedded and compiled Cube.bin binary (https://bitbucket.org/Coto88/blender-nds-exporter/src) from filesystem
 				//which generates a NDS GX Display List object, then it gets compiled again into a binary DisplayList.
@@ -390,8 +395,7 @@ void WoopsiTemplate::handleValueChangeEvent(const GadgetEventArgs& e) {
 				else{
 					printfWoopsi("ndsDisplayListUtilsTestCaseARM9 OK");
 				}
-				
-				
+				*/
 			}
 			else if(strncmp(currentFileChosen,"argv_chainload_test", strlen(currentFileChosen)) == 0){
 				//argv_chainload_test: Chainloads through toolchaingenericds-multiboot into toolchaingenericds-argvtest while passing an argument to it.
