@@ -38,9 +38,15 @@
 #include <stdlib.h>
 #include <_ansi.h>
 #include <reent.h>
+#include "wifi_arm9.h"
+#include "fatfslayerTGDS.h"
 
 //C++ part
 using namespace std;
+//#include <random>
+#include <iostream>
+#include <sstream>
+#include <vector>
 #include <fstream>
 #include <cmath>
 
@@ -217,6 +223,14 @@ void WoopsiTemplate::startup(int argc, char **argv) {
 		__UnitTestList->hide();
 		
 
+		_controlsScreen->addGadget(_controlWindow3);
+		_controlWindow3->getClientRect(rect);
+		_RandomGen = new Button(rect.x + 116 + 16, rect.y + 16 + 16 + 16, 104, 16, "Random Key Gen.");
+		_RandomGen->setRefcon(19);
+		_controlWindow3->addGadget(_RandomGen);
+		_RandomGen->addGadgetEventHandler(this);
+		
+
 	}
 	
 	// Add Top Screen
@@ -228,7 +242,7 @@ void WoopsiTemplate::startup(int argc, char **argv) {
 	_topScreen->insertGadget(new Gradient(0, SCREEN_TITLE_HEIGHT, 256, 192 - SCREEN_TITLE_HEIGHT, woopsiRGB(0, 31, 0), woopsiRGB(0, 0, 31)));
 	//Textbox 
 	_topScreen->getClientRect(rect);
-	_MultiLineTextBoxLogger = new MultiLineTextBox(rect.x, rect.y, 262, 170, WoopsiString(TGDSPROJECTNAME), Gadget::GADGET_DRAGGABLE, 5);
+	_MultiLineTextBoxLogger = new MultiLineTextBox(rect.x, rect.y, 262, 170, WoopsiString(TGDSPROJECTNAME), Gadget::GADGET_DRAGGABLE, 10);
 	_topScreen->addGadget(_MultiLineTextBoxLogger);
 	
 	if(__dsimode == true){
@@ -905,6 +919,28 @@ void WoopsiTemplate::handleClickEvent(const GadgetEventArgs& e) {
 		}	
 		break;
 
+		//_RandomGen Event
+		case 19:{
+			_MultiLineTextBoxLogger->removeText(0);
+			_MultiLineTextBoxLogger->moveCursorToPosition(0);
+			string fOut = string(getfatfsPath((char *)"keys.txt"));
+			std::remove(fOut.c_str());
+			std::ofstream outfile;
+			outfile.open(fOut.c_str());
+
+			int keyCount = 20;
+			vector<string> keys = generateAndShuffleKeys(keyCount);
+			char deb[256];
+			for (int i = 0; i < keys.size(); i++){
+				outfile << keys.at(i) << endl;
+			}
+			outfile.close();
+
+			sprintf(deb, "%s emitted OK. (Count:%d)\n", fOut.c_str(),  keys.size());
+			_MultiLineTextBoxLogger->appendText(deb);
+			
+		}
+		break;
 	}
 }
 
@@ -976,3 +1012,46 @@ void Woopsi::ApplicationMainLoop() {
 	}
 	handleARM9SVC();	/* Do not remove, handles TGDS services */
 }
+
+static std::string to_hex_string( const unsigned int i ) {
+    std::stringstream s;
+    s /*<< "0x"*/ << std::hex << i;
+    return s.str();
+}
+
+vector<string> generateAndShuffleKeys(int keyCount){
+	//std::random_device dev;
+    //std::mt19937 rng(dev());
+    //std::uniform_int_distribution<std::mt19937::result_type> dist6(1,6); // distribution in range [1, 6]
+
+	//Build random values
+	int listCount = keyCount;
+	int uniqueArr[listCount*4];
+	int i=0;
+	int indx=0;
+	for(i=0; i < listCount*4; i++){ //each generated value is 4 x u32 random values
+		uniqueArr[i] = -1;
+	}
+	for(;;){
+		int randVal = rand() % (UINT32_MAX);
+		if (contains(uniqueArr, listCount*4, randVal) == false){
+			uniqueArr[indx] = randVal;
+			indx++;
+		}
+		if(indx == (listCount*4)){
+			break;
+		}
+	}
+	
+	vector<string> vect;
+	i = 0;
+	for(i = 0; i < keyCount; i++){
+		u32 randomval0 = uniqueArr[(i*4)+0]; 
+		u32 randomval1 = uniqueArr[(i*4)+1]; 
+		u32 randomval2 = uniqueArr[(i*4)+2]; 
+		u32 randomval3 = uniqueArr[(i*4)+3]; 		
+		vect.push_back(to_hex_string(randomval0) + to_hex_string(randomval1) + to_hex_string(randomval2) + to_hex_string(randomval3) + string("_0x" + to_hex_string(i)));
+	}
+	return vect;
+}
+

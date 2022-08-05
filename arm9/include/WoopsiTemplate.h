@@ -20,6 +20,8 @@
 #include "button.h"
 
 #include <string>
+#include <iostream>
+#include <vector>
 using namespace std;
 using namespace WoopsiUI;
 
@@ -44,15 +46,15 @@ public:
 	
 	//Bottom Screen Obj
 	AmigaScreen* _controlsScreen;	//Top Screen object
-	Button* _Idle;
-	Button* _udpNifi;
-	Button* _localNifi;
-	Button* _sendNifiMsg;
-	Alert* _udpNifiMsgBox;
+	Button* _Idle; //2
+	Button* _udpNifi; //3
+	Button* _localNifi; //4
+	Button* _sendNifiMsg; //5
+	Alert* _udpNifiMsgBox; //6
 	
-	Button* _lzssCompress;
-	Button* _lzssDecompress;
-	Button* _dumpNDSSections;
+	Button* _lzssCompress; //7
+	Button* _lzssDecompress; //8
+	Button* _dumpNDSSections; //10
 
 	Button* _dumpARM7Memory; //11
 	Button* _dumpDLDI; //12
@@ -67,10 +69,12 @@ public:
 	Button* _reportPayloadMode; //16
 	
 	bool _micRecording;
-	Button* _micRecord;
+	Button* _micRecord; //9
 	
 	Button* _UnitTests; //17
 	FileRequester* __UnitTestList; //18
+
+	Button* _RandomGen; //19
 
 	FileRequester* _fileReq;
 	int _parentRefcon; //registers caller ID when interacting with _fileReq
@@ -86,6 +90,7 @@ extern "C" {
 #ifdef __cplusplus
 extern WoopsiTemplate * WoopsiTemplateProc;
 extern std::string getDldiDefaultPath();
+extern vector<string> generateAndShuffleKeys(int keyCount);
 #endif
 
 extern u32 pendPlay;
