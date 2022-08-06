@@ -76,6 +76,9 @@ public:
 
 	Button* _RandomGen; //19
 
+	Button* _RunToolchainGenericDSMB; //20
+	
+
 	FileRequester* _fileReq;
 	int _parentRefcon; //registers caller ID when interacting with _fileReq
 };

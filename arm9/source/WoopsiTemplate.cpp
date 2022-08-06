@@ -230,6 +230,12 @@ void WoopsiTemplate::startup(int argc, char **argv) {
 		_controlWindow3->addGadget(_RandomGen);
 		_RandomGen->addGadgetEventHandler(this);
 		
+		_controlsScreen->addGadget(_controlWindow3);
+		_controlWindow3->getClientRect(rect);
+		_RunToolchainGenericDSMB = new Button(rect.x, rect.y + 16 + 16 + 16 + 16, 120, 16, "Run TGDS-Multiboot");
+		_RunToolchainGenericDSMB->setRefcon(20);
+		_controlWindow3->addGadget(_RunToolchainGenericDSMB);
+		_RunToolchainGenericDSMB->addGadgetEventHandler(this);
 
 	}
 	
@@ -422,12 +428,12 @@ void WoopsiTemplate::handleValueChangeEvent(const GadgetEventArgs& e) {
 				if(__dsimode == true){
 					TGDS_CHAINLOADCALLER = "0:/ToolchainGenericDS-UnitTest.srl";
 					TGDS_CHAINLOADEXEC = "0:/ToolchainGenericDS-multiboot.srl";
-					TGDS_CHAINLOADTARGET = "0:/SNEmulDS.srl"; //ToolchainGenericDS-argvtest.srl
+					TGDS_CHAINLOADTARGET = "0:/ToolchainGenericDS-argvtest.srl";
 				}
 				else{
 					TGDS_CHAINLOADCALLER = "0:/ToolchainGenericDS-UnitTest.nds";
 					TGDS_CHAINLOADEXEC = "0:/ToolchainGenericDS-multiboot.nds";
-					TGDS_CHAINLOADTARGET = "0:/SNEmulDS.nds"; //ToolchainGenericDS-argvtest.nds
+					TGDS_CHAINLOADTARGET = "0:/ToolchainGenericDS-argvtest.nds";
 				}
 				char thisArgv[4][MAX_TGDSFILENAME_LENGTH];
 				memset(thisArgv, 0, sizeof(thisArgv));
@@ -578,6 +584,13 @@ void WoopsiTemplate::handleLidOpen() {
 	}
 }
 
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
+
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
 std::string getDldiDefaultPath(){
 	std::string dldiOut = string((char*)getfatfsPath( (sint8*)string(dldi_tryingInterface() + string(".dldi")).c_str() ));
 	return dldiOut;
@@ -585,6 +598,13 @@ std::string getDldiDefaultPath(){
 
 
 //Should ARM7 reply a message, then, it'll be received to test the Libnds FIFO implementation.
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
+
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
 void returnMsgHandler(int bytes, void* user_data)
 {
 	returnMsg msg;
@@ -596,6 +616,13 @@ void returnMsgHandler(int bytes, void* user_data)
 	WoopsiTemplateProc->_MultiLineTextBoxLogger->appendText(debugBuf);
 }
 
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
+
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
 void InstallSoundSys()
 {
 	/* Install FIFO */
@@ -938,7 +965,42 @@ void WoopsiTemplate::handleClickEvent(const GadgetEventArgs& e) {
 
 			sprintf(deb, "%s emitted OK. (Count:%d)\n", fOut.c_str(),  keys.size());
 			_MultiLineTextBoxLogger->appendText(deb);
+		}
+		break;
+
+		//_RunToolchainGenericDSMB Event
+		case 20:{
 			
+			_MultiLineTextBoxLogger->removeText(0);
+			_MultiLineTextBoxLogger->moveCursorToPosition(0);
+			_MultiLineTextBoxLogger->appendText("Running ToolchainGenericDS-Multiboot");
+			//Default case use
+			char * TGDS_CHAINLOADEXEC = NULL;
+			char * TGDS_CHAINLOADTARGET = NULL;
+			char * TGDS_CHAINLOADCALLER = NULL;
+			if(__dsimode == true){
+				TGDS_CHAINLOADCALLER = "0:/ToolchainGenericDS-UnitTest.srl";
+				TGDS_CHAINLOADEXEC = "0:/ToolchainGenericDS-multiboot.srl";
+				TGDS_CHAINLOADTARGET = "0:/ToolchainGenericDS-multiboot.srl";
+			}
+			else{
+				TGDS_CHAINLOADCALLER = "0:/ToolchainGenericDS-UnitTest.nds";
+				TGDS_CHAINLOADEXEC = "0:/ToolchainGenericDS-multiboot.nds";
+				TGDS_CHAINLOADTARGET = "0:/ToolchainGenericDS-multiboot.nds";
+			}
+			char thisArgv[4][MAX_TGDSFILENAME_LENGTH];
+			memset(thisArgv, 0, sizeof(thisArgv));
+			strcpy(&thisArgv[0][0], TGDS_CHAINLOADCALLER);	//Arg0:	This Binary loaded
+			strcpy(&thisArgv[1][0], TGDS_CHAINLOADEXEC);	//Arg1:	NDS Binary to chainload through TGDS-MB
+			strcpy(&thisArgv[2][0], TGDS_CHAINLOADTARGET);	//Arg2: NDS Binary loaded from TGDS-MB	
+			addARGV(3, (char*)&thisArgv);
+			strcpy(currentFileChosen, TGDS_CHAINLOADEXEC);
+			if(TGDSMultibootRunNDSPayload(currentFileChosen) == false){ //should never reach here, nor even return true. Should fail it returns false
+				printfWoopsi("Invalid NDS/TWL Binary");
+				printfWoopsi("or you are in NTR mode trying to load a TWL binary.");
+				printfWoopsi("or you are missing the TGDS-multiboot payload in root path.");
+				printfWoopsi("Press (A) to continue.");
+			}
 		}
 		break;
 	}
@@ -1013,12 +1075,26 @@ void Woopsi::ApplicationMainLoop() {
 	handleARM9SVC();	/* Do not remove, handles TGDS services */
 }
 
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
+
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
 static std::string to_hex_string( const unsigned int i ) {
     std::stringstream s;
     s /*<< "0x"*/ << std::hex << i;
     return s.str();
 }
 
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
+
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
 vector<string> generateAndShuffleKeys(int keyCount){
 	//std::random_device dev;
     //std::mt19937 rng(dev());
