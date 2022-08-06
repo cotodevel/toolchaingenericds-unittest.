@@ -38,9 +38,15 @@
 #include <stdlib.h>
 #include <_ansi.h>
 #include <reent.h>
+#include "wifi_arm9.h"
+#include "fatfslayerTGDS.h"
 
 //C++ part
 using namespace std;
+//#include <random>
+#include <iostream>
+#include <sstream>
+#include <vector>
 #include <fstream>
 #include <cmath>
 
@@ -217,6 +223,20 @@ void WoopsiTemplate::startup(int argc, char **argv) {
 		__UnitTestList->hide();
 		
 
+		_controlsScreen->addGadget(_controlWindow3);
+		_controlWindow3->getClientRect(rect);
+		_RandomGen = new Button(rect.x + 116 + 16, rect.y + 16 + 16 + 16, 104, 16, "Random Key Gen.");
+		_RandomGen->setRefcon(19);
+		_controlWindow3->addGadget(_RandomGen);
+		_RandomGen->addGadgetEventHandler(this);
+		
+		_controlsScreen->addGadget(_controlWindow3);
+		_controlWindow3->getClientRect(rect);
+		_RunToolchainGenericDSMB = new Button(rect.x, rect.y + 16 + 16 + 16 + 16, 120, 16, "Run TGDS-Multiboot");
+		_RunToolchainGenericDSMB->setRefcon(20);
+		_controlWindow3->addGadget(_RunToolchainGenericDSMB);
+		_RunToolchainGenericDSMB->addGadgetEventHandler(this);
+
 	}
 	
 	// Add Top Screen
@@ -228,7 +248,7 @@ void WoopsiTemplate::startup(int argc, char **argv) {
 	_topScreen->insertGadget(new Gradient(0, SCREEN_TITLE_HEIGHT, 256, 192 - SCREEN_TITLE_HEIGHT, woopsiRGB(0, 31, 0), woopsiRGB(0, 0, 31)));
 	//Textbox 
 	_topScreen->getClientRect(rect);
-	_MultiLineTextBoxLogger = new MultiLineTextBox(rect.x, rect.y, 262, 170, WoopsiString(TGDSPROJECTNAME), Gadget::GADGET_DRAGGABLE, 5);
+	_MultiLineTextBoxLogger = new MultiLineTextBox(rect.x, rect.y, 262, 170, WoopsiString(TGDSPROJECTNAME), Gadget::GADGET_DRAGGABLE, 10);
 	_topScreen->addGadget(_MultiLineTextBoxLogger);
 	
 	if(__dsimode == true){
@@ -408,12 +428,12 @@ void WoopsiTemplate::handleValueChangeEvent(const GadgetEventArgs& e) {
 				if(__dsimode == true){
 					TGDS_CHAINLOADCALLER = "0:/ToolchainGenericDS-UnitTest.srl";
 					TGDS_CHAINLOADEXEC = "0:/ToolchainGenericDS-multiboot.srl";
-					TGDS_CHAINLOADTARGET = "0:/SNEmulDS.srl"; //ToolchainGenericDS-argvtest.srl
+					TGDS_CHAINLOADTARGET = "0:/ToolchainGenericDS-argvtest.srl";
 				}
 				else{
 					TGDS_CHAINLOADCALLER = "0:/ToolchainGenericDS-UnitTest.nds";
 					TGDS_CHAINLOADEXEC = "0:/ToolchainGenericDS-multiboot.nds";
-					TGDS_CHAINLOADTARGET = "0:/SNEmulDS.nds"; //ToolchainGenericDS-argvtest.nds
+					TGDS_CHAINLOADTARGET = "0:/ToolchainGenericDS-argvtest.nds";
 				}
 				char thisArgv[4][MAX_TGDSFILENAME_LENGTH];
 				memset(thisArgv, 0, sizeof(thisArgv));
@@ -564,6 +584,13 @@ void WoopsiTemplate::handleLidOpen() {
 	}
 }
 
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
+
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
 std::string getDldiDefaultPath(){
 	std::string dldiOut = string((char*)getfatfsPath( (sint8*)string(dldi_tryingInterface() + string(".dldi")).c_str() ));
 	return dldiOut;
@@ -571,6 +598,13 @@ std::string getDldiDefaultPath(){
 
 
 //Should ARM7 reply a message, then, it'll be received to test the Libnds FIFO implementation.
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
+
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
 void returnMsgHandler(int bytes, void* user_data)
 {
 	returnMsg msg;
@@ -582,6 +616,13 @@ void returnMsgHandler(int bytes, void* user_data)
 	WoopsiTemplateProc->_MultiLineTextBoxLogger->appendText(debugBuf);
 }
 
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
+
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
 void InstallSoundSys()
 {
 	/* Install FIFO */
@@ -905,6 +946,63 @@ void WoopsiTemplate::handleClickEvent(const GadgetEventArgs& e) {
 		}	
 		break;
 
+		//_RandomGen Event
+		case 19:{
+			_MultiLineTextBoxLogger->removeText(0);
+			_MultiLineTextBoxLogger->moveCursorToPosition(0);
+			string fOut = string(getfatfsPath((char *)"keys.txt"));
+			std::remove(fOut.c_str());
+			std::ofstream outfile;
+			outfile.open(fOut.c_str());
+
+			int keyCount = 20;
+			vector<string> keys = generateAndShuffleKeys(keyCount);
+			char deb[256];
+			for (int i = 0; i < keys.size(); i++){
+				outfile << keys.at(i) << endl;
+			}
+			outfile.close();
+
+			sprintf(deb, "%s emitted OK. (Count:%d)\n", fOut.c_str(),  keys.size());
+			_MultiLineTextBoxLogger->appendText(deb);
+		}
+		break;
+
+		//_RunToolchainGenericDSMB Event
+		case 20:{
+			
+			_MultiLineTextBoxLogger->removeText(0);
+			_MultiLineTextBoxLogger->moveCursorToPosition(0);
+			_MultiLineTextBoxLogger->appendText("Running ToolchainGenericDS-Multiboot");
+			//Default case use
+			char * TGDS_CHAINLOADEXEC = NULL;
+			char * TGDS_CHAINLOADTARGET = NULL;
+			char * TGDS_CHAINLOADCALLER = NULL;
+			if(__dsimode == true){
+				TGDS_CHAINLOADCALLER = "0:/ToolchainGenericDS-UnitTest.srl";
+				TGDS_CHAINLOADEXEC = "0:/ToolchainGenericDS-multiboot.srl";
+				TGDS_CHAINLOADTARGET = "0:/ToolchainGenericDS-multiboot.srl";
+			}
+			else{
+				TGDS_CHAINLOADCALLER = "0:/ToolchainGenericDS-UnitTest.nds";
+				TGDS_CHAINLOADEXEC = "0:/ToolchainGenericDS-multiboot.nds";
+				TGDS_CHAINLOADTARGET = "0:/ToolchainGenericDS-multiboot.nds";
+			}
+			char thisArgv[4][MAX_TGDSFILENAME_LENGTH];
+			memset(thisArgv, 0, sizeof(thisArgv));
+			strcpy(&thisArgv[0][0], TGDS_CHAINLOADCALLER);	//Arg0:	This Binary loaded
+			strcpy(&thisArgv[1][0], TGDS_CHAINLOADEXEC);	//Arg1:	NDS Binary to chainload through TGDS-MB
+			strcpy(&thisArgv[2][0], TGDS_CHAINLOADTARGET);	//Arg2: NDS Binary loaded from TGDS-MB	
+			addARGV(3, (char*)&thisArgv);
+			strcpy(currentFileChosen, TGDS_CHAINLOADEXEC);
+			if(TGDSMultibootRunNDSPayload(currentFileChosen) == false){ //should never reach here, nor even return true. Should fail it returns false
+				printfWoopsi("Invalid NDS/TWL Binary");
+				printfWoopsi("or you are in NTR mode trying to load a TWL binary.");
+				printfWoopsi("or you are missing the TGDS-multiboot payload in root path.");
+				printfWoopsi("Press (A) to continue.");
+			}
+		}
+		break;
 	}
 }
 
@@ -976,3 +1074,60 @@ void Woopsi::ApplicationMainLoop() {
 	}
 	handleARM9SVC();	/* Do not remove, handles TGDS services */
 }
+
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
+
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
+static std::string to_hex_string( const unsigned int i ) {
+    std::stringstream s;
+    s /*<< "0x"*/ << std::hex << i;
+    return s.str();
+}
+
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
+
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
+vector<string> generateAndShuffleKeys(int keyCount){
+	//std::random_device dev;
+    //std::mt19937 rng(dev());
+    //std::uniform_int_distribution<std::mt19937::result_type> dist6(1,6); // distribution in range [1, 6]
+
+	//Build random values
+	int listCount = keyCount;
+	int uniqueArr[listCount*4];
+	int i=0;
+	int indx=0;
+	for(i=0; i < listCount*4; i++){ //each generated value is 4 x u32 random values
+		uniqueArr[i] = -1;
+	}
+	for(;;){
+		int randVal = rand() % (UINT32_MAX);
+		if (contains(uniqueArr, listCount*4, randVal) == false){
+			uniqueArr[indx] = randVal;
+			indx++;
+		}
+		if(indx == (listCount*4)){
+			break;
+		}
+	}
+	
+	vector<string> vect;
+	i = 0;
+	for(i = 0; i < keyCount; i++){
+		u32 randomval0 = uniqueArr[(i*4)+0]; 
+		u32 randomval1 = uniqueArr[(i*4)+1]; 
+		u32 randomval2 = uniqueArr[(i*4)+2]; 
+		u32 randomval3 = uniqueArr[(i*4)+3]; 		
+		vect.push_back(to_hex_string(randomval0) + to_hex_string(randomval1) + to_hex_string(randomval2) + to_hex_string(randomval3) + string("_0x" + to_hex_string(i)));
+	}
+	return vect;
+}
+
