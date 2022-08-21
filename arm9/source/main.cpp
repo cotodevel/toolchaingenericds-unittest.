@@ -65,6 +65,29 @@ USA
 #include "fatfslayerTGDS.h"
 #include <stdio.h>
 
+GLuint	texture[1];			// Storage For 1 Texture
+GLuint	box;				// Storage For The Box Display List
+GLuint	top;				// Storage For The Top Display List
+GLuint	xloop;				// Loop For X Axis
+GLuint	yloop;				// Loop For Y Axis
+
+GLfloat	xrot;				// Rotates Cube On The X Axis
+GLfloat	yrot;				// Rotates Cube On The Y Axis
+
+GLfloat boxcol[5][3]=
+{
+	{1.0f,0.0f,0.0f},{1.0f,0.5f,0.0f},{1.0f,1.0f,0.0f},{0.0f,1.0f,0.0f},{0.0f,1.0f,1.0f}
+};
+
+GLfloat topcol[5][3]=
+{
+	{.5f,0.0f,0.0f},{0.5f,0.25f,0.0f},{0.5f,0.5f,0.0f},{0.0f,0.5f,0.0f},{0.0f,0.5f,0.5f} 
+};
+
+float rotateX = 0.0;
+float rotateY = 0.0;
+float camMov = -1.0;
+
 //true: pen touch
 //false: no tsc activity
 bool get_pen_delta( int *dx, int *dy ){
@@ -89,25 +112,6 @@ bool get_pen_delta( int *dx, int *dy ){
 	}
 	return true;
 }
-
-GLuint	texture[1];			// Storage For 1 Texture
-GLuint	box;				// Storage For The Box Display List
-GLuint	top;				// Storage For The Top Display List
-GLuint	xloop;				// Loop For X Axis
-GLuint	yloop;				// Loop For Y Axis
-
-GLfloat	xrot;				// Rotates Cube On The X Axis
-GLfloat	yrot;				// Rotates Cube On The Y Axis
-
- GLfloat boxcol[5][3]=
-{
-	{1.0f,0.0f,0.0f},{1.0f,0.5f,0.0f},{1.0f,1.0f,0.0f},{0.0f,1.0f,0.0f},{0.0f,1.0f,1.0f}
-};
-
-GLfloat topcol[5][3]=
-{
-	{.5f,0.0f,0.0f},{0.5f,0.25f,0.0f},{0.5f,0.5f,0.0f},{0.0f,0.5f,0.0f},{0.0f,0.5f,0.5f}
-};
 
 bool dumpARM7ARM9Binary(char * filename){
 	if(isNTROrTWLBinary(filename) == notTWLOrNTRBinary){

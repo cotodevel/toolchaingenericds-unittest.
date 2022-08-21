@@ -10,6 +10,7 @@
 #include <reent.h>
 #include "soundTGDS.h"
 #include "dswnifi_lib.h"
+#include "VideoGL.h"
 
 #ifdef __cplusplus
 #include "alert.h"
@@ -62,7 +63,7 @@ public:
 	Button* _testcppFilesystem; //14
 
 	Button* _toggle2D3DMode; //15
-	bool _3DMode; //true: 3D Mode, false: 2D Mode
+	int _3DMode; //1: 3D Mode (simple triangle), 2: 3D Mode (OpenGL DisplayList) 0: 2D Mode
 	float rotateX;
 	float rotateY;
 
@@ -102,6 +103,12 @@ extern char somebuf[frameDSsize];	//use frameDSsize as the sender buffer size, a
 extern void returnMsgHandler(int bytes, void* user_data);
 extern void InstallSoundSys();
 extern int printfWoopsi(const char *fmt, ...);
+
+extern GLvoid BuildLists();
+extern GLvoid ReSizeGLScene(GLsizei width, GLsizei height);
+extern int textureArrayNDS[1];
+extern int InitGL();
+extern int DrawGLScene();
 
 #ifdef __cplusplus
 }
