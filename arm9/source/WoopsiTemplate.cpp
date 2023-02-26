@@ -59,6 +59,13 @@ char somebuf[frameDSsize];	//use frameDSsize as the sender buffer size, any othe
 __attribute__((section(".dtcm")))
 WoopsiTemplate * WoopsiTemplateProc = NULL;
 
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
+
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
 int printfWoopsi(const char *fmt, ...){
 	//Indentical Implementation as GUI_printf
 	va_list args;
@@ -68,10 +75,24 @@ int printfWoopsi(const char *fmt, ...){
 	WoopsiTemplateProc->_MultiLineTextBoxLogger->appendText((char*)ConsolePrintfBuf);
 }
 
-static inline string ToStr( char c ) {
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
+
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
+string ToStr( char c ) {
    return string( 1, c );
 }
 
+#if (defined(__GNUC__) && !defined(__clang__))
+__attribute__((optimize("O0")))
+#endif
+
+#if (!defined(__GNUC__) && defined(__clang__))
+__attribute__ ((optnone))
+#endif
 std::string OverrideFileExtension(const std::string& FileName, const std::string& newExt)
 {
 	std::string newString = string(FileName);
@@ -81,7 +102,7 @@ std::string OverrideFileExtension(const std::string& FileName, const std::string
 }
 
 #if (defined(__GNUC__) && !defined(__clang__))
-__attribute__((optimize("O0")))
+__attribute__((optimize("Os")))
 #endif
 
 #if (!defined(__GNUC__) && defined(__clang__))
@@ -634,7 +655,7 @@ void InstallSoundSys()
 }
 
 #if (defined(__GNUC__) && !defined(__clang__))
-__attribute__((optimize("O0")))
+__attribute__((optimize("Os")))
 #endif
 
 #if (!defined(__GNUC__) && defined(__clang__))
@@ -903,7 +924,7 @@ void WoopsiTemplate::handleClickEvent(const GadgetEventArgs& e) {
 					SETDISPCNT_MAIN(MODE_0_3D);
 					
 					//this should work the same as the normal gl call
-					glViewport(0,0,255,191);
+					glViewport(0,0,255,191,USERSPACE_TGDS_OGL_DL_POINTER);
 					
 					glClearColor(0,0,0);
 					glClearDepth(0x7FFF);
@@ -1053,42 +1074,43 @@ void Woopsi::ApplicationMainLoop() {
 			WoopsiTemplateProc->rotateX -= pen_delta[1];
 		}
 
-		glReset();
+		glReset(USERSPACE_TGDS_OGL_DL_POINTER);
 	
 		//any floating point gl call is being converted to fixed prior to being implemented
-		gluPerspective(35, 256.0 / 192.0, 0.1, 40);
+		gluPerspective(35, 256.0 / 192.0, 0.1, 40,USERSPACE_TGDS_OGL_DL_POINTER);
 
 		gluLookAt(	0.0, 0.0, 1.0,		//camera possition 
 					0.0, 0.0, 0.0,		//look at
-					0.0, 1.0, 0.0);		//up
+					0.0, 1.0, 0.0,		//up
+					USERSPACE_TGDS_OGL_DL_POINTER);		
 
-		glPushMatrix();
+		glPushMatrix(USERSPACE_TGDS_OGL_DL_POINTER);
 
 		//move it away from the camera
-		glTranslate3f32(0, 0, floattof32(-1));
+		glTranslate3f32(0, 0, floattof32(-1),USERSPACE_TGDS_OGL_DL_POINTER);
 				
-		glRotateX(WoopsiTemplateProc->rotateX);
-		glRotateY(WoopsiTemplateProc->rotateY);			
-		glMatrixMode(GL_MODELVIEW);
+		glRotateX(WoopsiTemplateProc->rotateX,USERSPACE_TGDS_OGL_DL_POINTER);
+		glRotateY(WoopsiTemplateProc->rotateY,USERSPACE_TGDS_OGL_DL_POINTER);
+		glMatrixMode(GL_MODELVIEW,USERSPACE_TGDS_OGL_DL_POINTER);
 		
 		//not a real gl function and will likely change
-		glPolyFmt(POLY_ALPHA(31) | POLY_CULL_NONE);
+		glPolyFmt(POLY_ALPHA(31) | POLY_CULL_NONE,USERSPACE_TGDS_OGL_DL_POINTER);
 		
 		//draw the obj
-		glBegin(GL_TRIANGLE);
+		glBegin(GL_TRIANGLE,USERSPACE_TGDS_OGL_DL_POINTER);
 			
-			glColor3b(31,0,0);
-			glVertex3v16(inttov16(-1),inttov16(-1),0);
+			glColor3b(31,0,0,USERSPACE_TGDS_OGL_DL_POINTER);
+			glVertex3v16(inttov16(-1),inttov16(-1),0,USERSPACE_TGDS_OGL_DL_POINTER);
 
-			glColor3b(0,31,0);
-			glVertex3v16(inttov16(1), inttov16(-1), 0);
+			glColor3b(0,31,0,USERSPACE_TGDS_OGL_DL_POINTER);
+			glVertex3v16(inttov16(1), inttov16(-1), 0,USERSPACE_TGDS_OGL_DL_POINTER);
 
-			glColor3b(0,0,31);
-			glVertex3v16(inttov16(0), inttov16(1), 0);
+			glColor3b(0,0,31,USERSPACE_TGDS_OGL_DL_POINTER);
+			glVertex3v16(inttov16(0), inttov16(1), 0,USERSPACE_TGDS_OGL_DL_POINTER);
 			
-		glEnd();
-		glPopMatrix(1);
-		glFlush();
+		glEnd(USERSPACE_TGDS_OGL_DL_POINTER);
+		glPopMatrix(1,USERSPACE_TGDS_OGL_DL_POINTER);
+		glFlush(USERSPACE_TGDS_OGL_DL_POINTER);
 		
 	}
 	else if(WoopsiTemplateProc->_3DMode == 2){
@@ -1157,52 +1179,52 @@ vector<string> generateAndShuffleKeys(int keyCount){
 //GL Display Lists Unit Test: Cube Demo
 // Build Cube Display Lists
 GLvoid BuildLists(){
-	box=glGenLists(2);									// Generate 2 Different Lists
-	glNewList(box,GL_COMPILE);							// Start With The Box List
-		glBegin(GL_QUADS);
+	box=glGenLists(2,USERSPACE_TGDS_OGL_DL_POINTER);	// Generate 2 Different Lists
+	glNewList(box,GL_COMPILE,USERSPACE_TGDS_OGL_DL_POINTER);							// Start With The Box List
+		glBegin(GL_QUADS,USERSPACE_TGDS_OGL_DL_POINTER);
 			// Bottom Face
-			glNormal3f(0.5f,-1.0f, 0.0f);
-			glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f, -1.0f, -1.0f);
-			glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f, -1.0f, -1.0f);
-			glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f,  1.0f);
-			glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f,  1.0f);
+			glNormal3f(0.5f,-1.0f, 0.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(1.0f, 1.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f(-1.0f, -1.0f, -1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(0.0f, 1.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f( 1.0f, -1.0f, -1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(0.0f, 0.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f( 1.0f, -1.0f,  1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(1.0f, 0.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f(-1.0f, -1.0f,  1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
 			// Front Face
-			glNormal3f( 1.0f, 1.0f, 1.0f);
-			glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f, -1.0f,  1.0f);
-			glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f, -1.0f,  1.0f);
-			glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f,  1.0f,  1.0f);
-			glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f,  1.0f,  1.0f);
+			glNormal3f( 1.0f, 1.0f, 1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(0.0f, 0.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f(-1.0f, -1.0f,  1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(1.0f, 0.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f( 1.0f, -1.0f,  1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(1.0f, 1.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f( 1.0f,  1.0f,  1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(0.0f, 1.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f(-1.0f,  1.0f,  1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
 			// Back Face
-			glNormal3f( 1.0f, 1.0f,-1.0f);
-			glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f, -1.0f);
-			glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f,  1.0f, -1.0f);
-			glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f,  1.0f, -1.0f);
-			glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f, -1.0f);
+			glNormal3f( 1.0f, 1.0f,-1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(1.0f, 0.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f(-1.0f, -1.0f, -1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(1.0f, 1.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f(-1.0f,  1.0f, -1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(0.0f, 1.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f( 1.0f,  1.0f, -1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(0.0f, 0.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f( 1.0f, -1.0f, -1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
 			// Right face
-			glNormal3f( 1.0f, 0.0f, 0.0f);
-			glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f, -1.0f, -1.0f);
-			glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f,  1.0f, -1.0f);
-			glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f,  1.0f,  1.0f);
-			glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f,  1.0f);
+			glNormal3f( 1.0f, 0.0f, 0.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(1.0f, 0.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f( 1.0f, -1.0f, -1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(1.0f, 1.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f( 1.0f,  1.0f, -1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(0.0f, 1.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f( 1.0f,  1.0f,  1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(0.0f, 0.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f( 1.0f, -1.0f,  1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
 			// Left Face
-			glNormal3f(-1.0f, 0.0f, 1.0f);
-			glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f, -1.0f, -1.0f);
-			glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f,  1.0f);
-			glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f,  1.0f,  1.0f);
-			glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f,  1.0f, -1.0f);
-		glEnd();
-	glEndList();
+			glNormal3f(-1.0f, 0.0f, 1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(0.0f, 0.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f(-1.0f, -1.0f, -1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(1.0f, 0.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f(-1.0f, -1.0f,  1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(1.0f, 1.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f(-1.0f,  1.0f,  1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(0.0f, 1.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f(-1.0f,  1.0f, -1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+		glEnd(USERSPACE_TGDS_OGL_DL_POINTER);
+	glEndList(USERSPACE_TGDS_OGL_DL_POINTER);
 	top=box+1;											// Storage For "Top" Is "Box" Plus One
-	glNewList(top,GL_COMPILE);							// Now The "Top" Display List
-		glBegin(GL_QUADS);
+	glNewList(top,GL_COMPILE,USERSPACE_TGDS_OGL_DL_POINTER); // Now The "Top" Display List
+		glBegin(GL_QUADS,USERSPACE_TGDS_OGL_DL_POINTER);
 			// Top Face
-			glNormal3f( 1.0f, 1.0f, 1.0f);
-			glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f,  1.0f, -1.0f);
-			glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f,  1.0f,  1.0f);
-			glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f,  1.0f,  1.0f);
-			glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f,  1.0f, -1.0f);
-		glEnd();
-	glEndList();
+			glNormal3f( 1.0f, 1.0f, 1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(0.0f, 1.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f(-1.0f,  1.0f, -1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(0.0f, 0.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f(-1.0f,  1.0f,  1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(1.0f, 0.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f( 1.0f,  1.0f,  1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glTexCoord2f(1.0f, 1.0f,USERSPACE_TGDS_OGL_DL_POINTER); glVertex3f( 1.0f,  1.0f, -1.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+		glEnd(USERSPACE_TGDS_OGL_DL_POINTER);
+	glEndList(USERSPACE_TGDS_OGL_DL_POINTER);
 }
 
 GLvoid ReSizeGLScene(GLsizei width, GLsizei height)		// Resize And Initialize The GL Window
@@ -1212,16 +1234,16 @@ GLvoid ReSizeGLScene(GLsizei width, GLsizei height)		// Resize And Initialize Th
 		height=1;										// Making Height Equal One
 	}
 
-	glViewport(0,0,width,height);						// Reset The Current Viewport
+	glViewport(0,0,width,height,USERSPACE_TGDS_OGL_DL_POINTER);						// Reset The Current Viewport
 
-	glMatrixMode(GL_PROJECTION);						// Select The Projection Matrix
-	glLoadIdentity();									// Reset The Projection Matrix
+	glMatrixMode(GL_PROJECTION,USERSPACE_TGDS_OGL_DL_POINTER);						// Select The Projection Matrix
+	glLoadIdentity(USERSPACE_TGDS_OGL_DL_POINTER);									// Reset The Projection Matrix
 
 	// Calculate The Aspect Ratio Of The Window
-	gluPerspective(45.0f,(GLfloat)width/(GLfloat)height,0.1f,100.0f);
+	gluPerspective(45.0f,(GLfloat)width/(GLfloat)height,0.1f,100.0f,USERSPACE_TGDS_OGL_DL_POINTER);
 
-	glMatrixMode(GL_MODELVIEW);							// Select The Modelview Matrix
-	glLoadIdentity();									// Reset The Modelview Matrix
+	glMatrixMode(GL_MODELVIEW,USERSPACE_TGDS_OGL_DL_POINTER); // Select The Modelview Matrix
+	glLoadIdentity(USERSPACE_TGDS_OGL_DL_POINTER);									// Reset The Modelview Matrix
 }
 
 int textureArrayNDS[1]; //0 : Cube tex 
@@ -1285,18 +1307,18 @@ int DrawGLScene(){
 	}
 
 				//Clear The Screen And The Depth Buffer
-	glReset(); //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	todo: implement https://stackoverflow.com/questions/28137027/why-do-i-need-glcleargl-depth-buffer-bit through cuboid tests and rendering into OpenGL
+	glReset(USERSPACE_TGDS_OGL_DL_POINTER); //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	todo: implement https://stackoverflow.com/questions/28137027/why-do-i-need-glcleargl-depth-buffer-bit through cuboid tests and rendering into OpenGL
 	//Instead, we forcefully reset so always points to a first default projection matrix, then matrix node relative to a first default modelview 
 	
 	//Set initial view to look at
-	gluPerspective(18, 256.0 / 192.0, 0.1, 40);
+	gluPerspective(18, 256.0 / 192.0, 0.1, 40,USERSPACE_TGDS_OGL_DL_POINTER);
 
 	//Camera perspective from there
 	gluLookAt(	0.0, 0.0, 4.0,		//camera possition 
 				0.0, 0.0, 0.0,		//look at
-				0.0, 1.0, 0.0);		//up
-	
-	glMaterialShinnyness();
+				0.0, 1.0, 0.0,		//up
+	USERSPACE_TGDS_OGL_DL_POINTER);
+	glMaterialShinnyness(USERSPACE_TGDS_OGL_DL_POINTER);
 	
 	GLfloat light_ambient[]  = { 1.0f, 1.0f, 1.0f, 1.0f };
     GLfloat light_diffuse[]  = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -1310,31 +1332,31 @@ int DrawGLScene(){
 	//Draw each cube through a set of Open GL Display List calls 
 	for (yloop=1;yloop<6;yloop++){
 		for (xloop=0;xloop<yloop;xloop++){
-			glBindTexture( 0, textureArrayNDS[0]);
+			glBindTexture( 0, textureArrayNDS[0],USERSPACE_TGDS_OGL_DL_POINTER);
 			// Reset The View
-			glLoadIdentity();
-			glTranslatef(1.4f+(float(xloop)*2.8f)-(float(yloop)*1.4f),((6.0f-float(yloop))*2.4f)-7.3f,-20.0f + camMov);
+			glLoadIdentity(USERSPACE_TGDS_OGL_DL_POINTER);
+			glTranslatef(1.4f+(float(xloop)*2.8f)-(float(yloop)*1.4f),((6.0f-float(yloop))*2.4f)-7.3f,-20.0f + camMov,USERSPACE_TGDS_OGL_DL_POINTER);
 			
-			glRotatef(45.0f-(2.0f*yloop)+xrot,1.0f,0.0f,0.0f);
-			glRotatef(45.0f+yrot,0.0f,1.0f,0.0f);
+			glRotatef(45.0f-(2.0f*yloop)+xrot,1.0f,0.0f,0.0f,USERSPACE_TGDS_OGL_DL_POINTER);
+			glRotatef(45.0f+yrot,0.0f,1.0f,0.0f,USERSPACE_TGDS_OGL_DL_POINTER);
 
 			//not a real gl function and will likely change
 			#define GX_LIGHT0 (1 << 0)
-			glPolyFmt(GX_LIGHT0 | POLY_ALPHA(31) | POLY_CULL_NONE);
+			glPolyFmt(GX_LIGHT0 | POLY_ALPHA(31) | POLY_CULL_NONE,USERSPACE_TGDS_OGL_DL_POINTER);
 			
-			glLightfv(GL_LIGHT0, GL_AMBIENT,  light_ambient);
-			glLightfv(GL_LIGHT0, GL_DIFFUSE,  light_diffuse);
-			glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
-			glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-			glMaterialf(GL_AMBIENT_AND_DIFFUSE, RGB15(31,31,31));	
+			glLightfv(GL_LIGHT0, GL_AMBIENT,  light_ambient,USERSPACE_TGDS_OGL_DL_POINTER);
+			glLightfv(GL_LIGHT0, GL_DIFFUSE,  light_diffuse,USERSPACE_TGDS_OGL_DL_POINTER);
+			glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular,USERSPACE_TGDS_OGL_DL_POINTER);
+			glLightfv(GL_LIGHT0, GL_POSITION, light_position,USERSPACE_TGDS_OGL_DL_POINTER);
+			glMaterialf(GL_AMBIENT_AND_DIFFUSE, RGB15(31,31,31),USERSPACE_TGDS_OGL_DL_POINTER);	
 			//Run the precompiled standard Open GL 1.1 Display List here
-			glColor3fv(boxcol[yloop-1]);
-			glCallList(box);
-			glColor3fv(topcol[yloop-1]);
-			glCallList(top);
+			glColor3fv(boxcol[yloop-1],USERSPACE_TGDS_OGL_DL_POINTER);
+			glCallList(box,USERSPACE_TGDS_OGL_DL_POINTER);
+			glColor3fv(topcol[yloop-1],USERSPACE_TGDS_OGL_DL_POINTER);
+			glCallList(top,USERSPACE_TGDS_OGL_DL_POINTER);
 		}
 	}
-	glFlush();
+	glFlush(USERSPACE_TGDS_OGL_DL_POINTER);
 	
 	return true;										// Keep Going
 }
