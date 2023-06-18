@@ -915,7 +915,8 @@ void WoopsiTemplate::handleClickEvent(const GadgetEventArgs& e) {
 				//_MultiLineTextBoxLogger->appendText(debugBuf);
 
 				//Simple Triangle GL init
-				glInit(); //NDSDLUtils: Initializes a new videoGL context
+				int TGDSOpenGLDisplayListWorkBufferSize = (256*1024);
+				glInit(TGDSOpenGLDisplayListWorkBufferSize); //NDSDLUtils: Initializes a new videoGL context
 				glEnable(GL_LIGHT0); //Light #0 enabled to allow colors to reflect onto normals in the upcoming scene
 				rotateX = 0.0;
 				rotateY = 0.0;
@@ -1258,7 +1259,8 @@ GLvoid ReSizeGLScene(GLsizei width, GLsizei height)		// Resize And Initialize Th
 int textureArrayNDS[1]; //0 : Cube tex 
 int InitGL()										// All Setup For OpenGL Goes Here
 {
-	glInit(); //NDSDLUtils: Initializes a new videoGL context	
+	int TGDSOpenGLDisplayListWorkBufferSize = (256*1024);
+	glInit(TGDSOpenGLDisplayListWorkBufferSize); //NDSDLUtils: Initializes a new videoGL context	
 	glClearColor(0,0,0);		// Black Background
 	glClearDepth(0x7FFF);		// Depth Buffer Setup
 	glEnable(GL_ANTIALIAS);
