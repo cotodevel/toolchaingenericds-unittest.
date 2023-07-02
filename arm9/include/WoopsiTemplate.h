@@ -26,8 +26,6 @@
 using namespace std;
 using namespace WoopsiUI;
 
-#define TGDSPROJECTNAME ((char*) "ToolchainGenericDS-UnitTest")
-
 class WoopsiTemplate : public Woopsi, public GadgetEventHandler {
 public:
 	void startup(int argc, char **argv);
